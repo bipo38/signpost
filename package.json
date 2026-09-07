@@ -17,7 +17,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:api": "node bin/signpost.mjs --root ../olaaaaaaa/comsart --no-open",
+    "dev:api": "node bin/signpost.mjs --root example --no-open",
     "build": "vue-tsc --noEmit && vite build",
     "test": "node --test server/*.test.mjs src/*.test.ts",
     "prepare": "vue-tsc --noEmit && vite build"

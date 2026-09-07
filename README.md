@@ -81,8 +81,9 @@ Only docs already in the graph can be picked as parents, links, or return tables
 ```sh
 git clone https://github.com/bipo38/signpost.git && cd signpost
 pnpm install          # also builds dist/
-pnpm dev:api          # API on :4747 against ../olaaaaaaa/comsart (edit the script for your repo)
+pnpm dev:api          # API on :4747 against example/, a tiny repo with a CLAUDE.md and a few docs
 pnpm dev              # Vite UI on :5173, proxies /api
+# or point the built tool at any repo: node bin/signpost.mjs --root ../your-repo
 pnpm test             # node:test on server/graph.mjs
 pnpm build            # dist/ served by the bin
 ```

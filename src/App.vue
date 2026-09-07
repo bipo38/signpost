@@ -17,8 +17,7 @@ const edges = shallowRef<FlowEdge[]>([])
 const selected = ref<string | null>(null)
 const content = ref('')
 const mode = ref<'view' | 'create' | 'broken'>('view')
-// Broken-links badge and panel, hidden for now; flip to true to bring them back.
-const SHOW_BROKEN = false
+const SHOW_BROKEN = true
 const hovered = ref<string | null>(null)
 // Dense graphs draw only the edges touching the selected or hovered doc; everything else would be a wall of lines.
 const dense = computed(() => (graph.value?.edges.length ?? 0) > DENSE_EDGES)
@@ -136,6 +135,20 @@ function suggest(ref: string) {
   const name = ref.split('/').pop()
   return graph.value?.nodes.find((n) => n.path.split('/').pop() === name)?.path ?? ''
 }
+// Diff preview for a broken line: just the text around the reference, so a long table row or
+// paragraph reads as one change instead of a wall of markdown.
+const CTX = 14
+function diffOf(b: { text: string; ref: string; fixable: boolean; line: number; from: string }) {
+  const i = b.text.indexOf(b.ref)
+  let pre = i < 0 ? '' : b.text.slice(0, i)
+  let post = i < 0 ? b.text : b.text.slice(i + b.ref.length)
+  if (pre.length > CTX) pre = '…' + pre.slice(-CTX)
+  if (post.length > CTX) post = post.slice(0, CTX) + '…'
+  const to = fixTarget.value[fixKey(b)] ?? suggest(b.ref)
+  // Stripping a backticked path in prose takes its backticks with it, as the server does.
+  const strip = !to && pre.endsWith('`') && post.startsWith('`')
+  return { pre, post, to, removes: !to && b.fixable, pre2: strip ? pre.slice(0, -1) : pre, post2: strip ? post.slice(1) : post }
+}
 async function relink(b: { from: string; ref: string; line: number }) {
   const to = fixTarget.value[fixKey(b)] ?? suggest(b.ref)
   if (!to) return
@@ -213,8 +226,17 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
                 <button class="truncate text-left font-medium hover:underline underline-offset-3" @click="select(b.from)">{{ b.from }}<span class="font-normal text-muted-foreground">:{{ b.line }}</span></button>
                 <span class="shrink-0 text-[11px] text-muted-foreground">{{ b.fixable ? 'table / list' : 'prose' }}</span>
               </div>
-              <div class="mt-1 text-[11px] text-muted-foreground">missing <code class="rounded bg-muted px-1">{{ b.ref }}</code></div>
-              <pre class="mt-1.5 overflow-x-auto whitespace-pre rounded bg-muted px-2 py-1 text-[11px]">{{ b.text }}</pre>
+              <div class="mt-1.5 rounded bg-muted px-2 py-1 font-mono text-[11px] leading-5">
+                <div class="flex gap-1.5 overflow-hidden whitespace-pre text-muted-foreground">
+                  <span class="select-none text-destructive">−</span>
+                  <span class="truncate">{{ diffOf(b).pre }}<mark class="rounded-sm bg-destructive/15 px-0.5 text-destructive line-through decoration-destructive/60">{{ b.ref }}</mark>{{ diffOf(b).post }}</span>
+                </div>
+                <div class="flex gap-1.5 overflow-hidden whitespace-pre text-muted-foreground">
+                  <span class="select-none text-accent-success">+</span>
+                  <span v-if="diffOf(b).removes" class="italic">line removed</span>
+                  <span v-else class="truncate">{{ diffOf(b).pre2 }}<mark v-if="diffOf(b).to" class="rounded-sm bg-accent-success/15 px-0.5 text-accent-success">{{ diffOf(b).to }}</mark>{{ diffOf(b).post2 }}</span>
+                </div>
+              </div>
               <div class="mt-2 flex items-center gap-1.5">
                 <select :value="fixTarget[fixKey(b)] ?? suggest(b.ref)" class="h-7 min-w-0 flex-1 rounded-md border bg-card px-1.5 text-[11.5px] outline-none focus-visible:border-ring" @change="fixTarget[fixKey(b)] = ($event.target as HTMLSelectElement).value">
                   <option value="" disabled>replace with…</option>
