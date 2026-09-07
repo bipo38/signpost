@@ -21,6 +21,7 @@
   --border: oklch(0.929 0.013 255.508);
   --accent-orange: oklch(0.6776 0.1913 34.74);
   --accent-success: oklch(0.6371 0.1749 146.7);
+  --destructive: oklch(0.577 0.245 27.325);
   --dot: rgba(22,22,23,.15);
   --font-geist: 'Geist','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   --font-mono: 'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -118,6 +119,29 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .panel p { font-size: 13.5px; margin: 0 0 10px; }
 .v3 .panel p code, .v3 .panel li code { font-size: 12px; background: var(--muted); padding: 1px 5px; border-radius: 4px; color: var(--primary); cursor: pointer; }
 .v3 .panel ul { font-size: 13.5px; padding-left: 20px; margin: 0 0 10px; }
+/* Broken links, mirrors the app panel */
+.v3 .badge { margin-left: 8px; padding: 1px 6px; border-radius: 4px; border: 1px solid color-mix(in oklch, var(--destructive) 40%, transparent); background: color-mix(in oklch, var(--destructive) 10%, transparent); color: var(--destructive); font-size: 11px; cursor: pointer; transition: background 150ms ease-out; }
+.v3 .badge:hover { background: color-mix(in oklch, var(--destructive) 20%, transparent); }
+.v3 .panel .intro { font-size: 12.5px; color: var(--muted-foreground); margin: 0 0 16px; }
+.v3 .bl { border: 1px solid var(--border); border-radius: 6px; background: var(--card); padding: 10px 12px; font-size: 12.5px; margin-bottom: 12px; }
+.v3 .bl .top { display: flex; justify-content: space-between; gap: 8px; }
+.v3 .bl .top b { font-weight: 500; } .v3 .bl .top .ln { color: var(--muted-foreground); font-weight: 400; }
+.v3 .bl .kind { font-size: 11px; color: var(--muted-foreground); }
+.v3 .bl .diff { margin-top: 6px; border-radius: 4px; background: var(--muted); padding: 4px 8px; font-family: var(--font-mono); font-size: 11px; line-height: 20px; color: var(--muted-foreground); }
+.v3 .bl .diff div { display: flex; gap: 6px; overflow: hidden; white-space: pre; }
+.v3 .bl .diff div span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.v3 .bl .diff .m { color: var(--destructive); user-select: none; } .v3 .bl .diff .pl { color: var(--accent-success); user-select: none; }
+.v3 .bl mark { border-radius: 2px; padding: 0 2px; }
+.v3 .bl mark.del { background: color-mix(in oklch, var(--destructive) 15%, transparent); color: var(--destructive); text-decoration: line-through; }
+.v3 .bl mark.add { background: color-mix(in oklch, var(--accent-success) 15%, transparent); color: var(--accent-success); }
+.v3 .bl .gone { font-style: italic; }
+.v3 .bl .act { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.v3 .bl select { flex: 1; min-width: 0; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: inherit; font: inherit; font-size: 11.5px; padding: 0 6px; }
+.v3 .bl .b { height: 28px; padding: 0 10px; border-radius: 6px; border: 0; font-size: 11.5px; font-weight: 500; background: var(--primary); color: var(--primary-foreground); }
+.v3 .bl .b.rm { background: transparent; border: 1px solid var(--border); color: var(--destructive); font-weight: 400; }
+.v3 .bl .b.rm:hover { background: color-mix(in oklch, var(--destructive) 10%, transparent); }
+.v3 .panel .empty { text-align: center; color: var(--muted-foreground); font-size: 13px; margin: auto 0; }
+.v3 .panel .empty b { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--foreground); margin-bottom: 6px; }
 /* LinkedDocs, ported from src/components/LinkedDocs.vue */
 .v3 .linked { margin-bottom: 20px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); padding: 8px 8px 4px; }
 .v3 .linked svg { display: block; width: 100%; overflow: visible; }
@@ -191,6 +215,11 @@ const EDGES = [
   ['plan.md','plan-mode.md',3], ['plan.md','prototype.md',1], ['plan.md','ui.md',1], ['plan.md','be-internal.md',1], ['plan.md','fe-internal.md',1],
   ['prototype.md','PRODUCT.md',1], ['prototype.md','plan-mode.md',2], ['plan-mode.md','plan.md',1],
 ];
+// Dangling references in the sample repo, as the scanner reports them.
+let BROKEN = [
+  { from: 'CLAUDE.md', line: 14, ref: 'docs/testing/e2e-legacy.md', text: 'See also `docs/testing/e2e-legacy.md` — old Cypress suite.', fixable: true, to: '' },
+  { from: 'docs/plan.md', line: 9, ref: 'docs/design/tokens.md', text: 'When the design is unclear, skim `docs/design/tokens.md` before touching any component styles.', fixable: false, to: '' },
+];
 const NW = 150, NH = 44;
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 const fullPath = n => n.dir === '/' ? n.id : `${n.dir}/${n.id}`;
@@ -247,7 +276,7 @@ function edgePath(a, b) {
 const v3 = () => `<div class="v3">
   <header>
     <span class="brand">signpost</span>
-    <span class="meta"><b>your-repo</b> · CLAUDE.md · 8 docs · 12 links</span>
+    <span class="meta"><b>your-repo</b> · CLAUDE.md · 8 docs · 12 links<button class="badge" id="g-badge"></button></span>
     <nav><a href="#about">about</a><a href="${GH}">github</a><a class="btn" style="height:32px;font-size:12.5px" href="${GH}#install">install</a></nav>
   </header>
   <div class="canvasrow">
@@ -289,6 +318,45 @@ function wireV3() {
   const panel = document.getElementById('g-panel');
   const edges = [...canvas.querySelectorAll('.edge')];
   const nodes = [...canvas.querySelectorAll('.node')];
+  const badge = document.getElementById('g-badge');
+  const CTX = 14;
+  const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const diff = b => {
+    const i = b.text.indexOf(b.ref);
+    let pre = b.text.slice(0, i), post = b.text.slice(i + b.ref.length);
+    if (pre.length > CTX) pre = '…' + pre.slice(-CTX);
+    if (post.length > CTX) post = post.slice(0, CTX) + '…';
+    const strip = !b.to && pre.endsWith('`') && post.startsWith('`');
+    const plus = !b.to && b.fixable ? '<span class="gone">line removed</span>'
+      : `<span>${esc(strip ? pre.slice(0, -1) : pre)}${b.to ? `<mark class="add">${b.to}</mark>` : ''}${esc(strip ? post.slice(1) : post)}</span>`;
+    return `<div><span class="m">−</span><span>${esc(pre)}<mark class="del">${b.ref}</mark>${esc(post)}</span></div><div><span class="pl">+</span>${plus}</div>`;
+  };
+  const renderBadge = () => { badge.textContent = `${BROKEN.length} broken ${BROKEN.length === 1 ? 'link' : 'links'}`; badge.hidden = !BROKEN.length; };
+  const showBroken = () => {
+    nodes.forEach(el => el.classList.remove('selected'));
+    if (!BROKEN.length) { panel.innerHTML = `<div class="empty"><b>no broken links</b>every reference points at a doc that exists.</div>`; return; }
+    panel.innerHTML = `<div class="path"><span style="font-family:var(--font-display);font-size:24px;color:var(--foreground)">broken links</span></div>
+      <p class="intro">References to docs that no longer exist. <b>replace</b> points the reference at another doc. <b>remove</b> drops a table row or "See also" line, and in prose strips just the reference.</p>
+      ${BROKEN.map((b, i) => `<div class="bl">
+        <div class="top"><b>${b.from}<span class="ln">:${b.line}</span></b><span class="kind">${b.fixable ? 'table / list' : 'prose'}</span></div>
+        <div class="diff">${diff(b)}</div>
+        <div class="act">
+          <select data-i="${i}"><option value="" ${b.to ? '' : 'selected'} disabled>replace with…</option>${NODES.map(n => `<option value="${fullPath(n)}" ${b.to === fullPath(n) ? 'selected' : ''}>${fullPath(n)}</option>`).join('')}</select>
+          <button class="b" data-fix="${i}" ${b.to ? '' : 'disabled'}>replace</button>
+          <button class="b rm" data-fix="${i}">remove</button>
+        </div>
+      </div>`).join('')}`;
+  };
+  badge.addEventListener('click', showBroken);
+  panel.addEventListener('change', e => {
+    const sel = e.target.closest('select[data-i]'); if (!sel) return;
+    BROKEN[+sel.dataset.i].to = sel.value; showBroken();
+  });
+  panel.addEventListener('click', e => {
+    const b = e.target.closest('button[data-fix]'); if (!b) return;
+    BROKEN.splice(+b.dataset.fix, 1); renderBadge(); showBroken();
+  });
+  renderBadge();
   const select = id => {
     const n = byId[id]; if (!n) return;
     nodes.forEach(el => el.classList.toggle('selected', el.dataset.id === id));
