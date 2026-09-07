@@ -30,7 +30,7 @@ export function serve({ root, docs, port, open }) {
           parents: f.getAll('parents'),
           links: f.getAll('links'),
           returnRows: f.getAll('returnRows'),
-        })
+        }, opts)
         return json(201, { path })
       }
       // Static UI from dist, SPA fallback to index.html.
@@ -43,7 +43,12 @@ export function serve({ root, docs, port, open }) {
       json(400, { error: e.message })
     }
   })
-  server.listen(port, () => {
+  server.on('error', (e) => {
+    console.error(e.code === 'EADDRINUSE' ? `port ${port} is in use — pass --port <other>` : e.message)
+    process.exit(1)
+  })
+  // Local tool that writes into your repo: never expose it beyond this machine.
+  server.listen(port, '127.0.0.1', () => {
     const addr = `http://localhost:${port}`
     console.log(`signpost → ${addr}  (root: ${root})`)
     if (open) exec(`${process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'} ${addr}`)

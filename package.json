@@ -1,7 +1,7 @@
 {
-  "name": "signpost",
+  "name": "@bipo38/signpost",
   "version": "0.1.0",
-  "description": "Visualize and extend the context-pointer docs behind a CLAUDE.md / AGENTS.md file",
+  "description": "Graph of the context-pointer docs behind CLAUDE.md / AGENTS.md, with a form to add new docs already wired in",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -20,12 +20,10 @@
     "dev:api": "node bin/signpost.mjs --root ../olaaaaaaa/comsart --no-open",
     "build": "vue-tsc --noEmit && vite build",
     "test": "node --test server/*.test.mjs",
-    "prepack": "pnpm build",
-    "prepare": "pnpm build"
+    "prepare": "vue-tsc --noEmit && vite build"
   },
   "devDependencies": {
     "@dagrejs/dagre": "^3.1.1",
-    "@lucide/vue": "^1.42.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.0",
     "@vitejs/plugin-vue": "^6.0.8",
@@ -44,5 +42,24 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bipo38/signpost.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "agents",
+    "agents.md",
+    "claude.md",
+    "docs",
+    "graph",
+    "markdown",
+    "cli"
+  ],
+  "author": "Asier Gilaber",
+  "homepage": "https://github.com/bipo38/signpost#readme",
+  "bugs": {
+    "url": "https://github.com/bipo38/signpost/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -39,5 +39,6 @@ test('create writes the file and wires parents, links and return rows', () => {
   assert.match(readFileSync(join(root, 'docs/testing/perf.md'), 'utf8'), /^# Perf\n[\s\S]*Related: `docs\/testing\/ui.md`\.\n$/)
   assert.throws(() => create(root, { path: 'docs/testing/perf.md', situation: 'x' }), /already exists/)
   assert.throws(() => create(root, { path: '../evil.md', situation: 'x' }), /path must/)
+  assert.throws(() => create(root, { path: 'docs/x.md', situation: 'x', parents: ['../../etc/motd'] }), /not a doc in this graph/)
   assert.equal(scan(root).edges.filter((e) => e.from === 'docs/testing/perf.md').length, 2)
 })

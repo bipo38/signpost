@@ -55,10 +55,12 @@ export function insertRow(text, row, heading) {
   return lines.join('\n')
 }
 
-export function create(root, { path, situation, body, parents = [], links = [], returnRows = [] }) {
+export function create(root, { path, situation, body, parents = [], links = [], returnRows = [] }, opts = {}) {
   if (!/^[\w-]+(\/[\w-]+)*\.md$/.test(path) || path.split('/').length < 2) throw new Error('path must look like docs/**/name.md')
   if (existsSync(join(root, path))) throw new Error(`${path} already exists`)
   if (!situation?.trim()) throw new Error('situation is required')
+  const known = new Set(scan(root, opts).nodes.map((n) => n.path))
+  for (const p of [...parents, ...links, ...returnRows]) if (!known.has(p)) throw new Error(`${p} is not a doc in this graph`)
   const caller = parents[0] ?? findEntry(root)
   const slug = path.split('/').pop().replace('.md', '')
   const title = slug.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
