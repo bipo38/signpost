@@ -112,7 +112,6 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .node .sub { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: 10px; margin-top: 3px; }
 .v3 .node .sub .io { display: flex; gap: 5px; }
 .v3 .node .sub .in { color: var(--accent-success); } .v3 .node .sub .out { color: var(--primary); }
-.v3 .canvas .hint { position: absolute; left: 24px; bottom: 20px; font-size: 12px; color: var(--muted-foreground); }
 .v3 .panel { border-left: 1px solid var(--border); background: var(--card); padding: 28px 28px 32px; display: flex; flex-direction: column; }
 .v3 .panel .path { font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); margin-bottom: 14px; display: flex; justify-content: space-between; }
 .v3 .panel h2 { font-family: var(--font-display); font-size: 28px; font-weight: 400; margin: 0 0 14px; line-height: 1.1; }
@@ -219,7 +218,6 @@ const v3 = () => `<div class="v3">
           <span class="sub"><span>${n.dir}</span><span class="io"><span class="in">↓${ins}</span><span class="out">↑${outs}</span></span></span>
         </button>`; }).join('')}
       </div>
-      <div class="hint">hover a card to light its links · click to read it</div>
     </div>
     <aside class="panel" id="g-panel"></aside>
   </div>
