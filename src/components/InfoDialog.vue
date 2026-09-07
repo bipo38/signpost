@@ -49,6 +49,33 @@ See the [UI checklist](testing/ui.md).</pre>
         </div>
 
         <div>
+          <h3 class="mb-1 text-[11px] font-medium lowercase tracking-wide text-muted-foreground">worked example</h3>
+          <p>Nothing is written until you press <strong>create doc</strong>. Say you fill the form with:</p>
+          <ul class="mt-2 list-disc space-y-0.5 pl-5">
+            <li><strong>path</strong> <code class="rounded bg-muted px-1">{{ docs }}/testing/perf.md</code></li>
+            <li><strong>situation</strong> <em>Performance regression check</em></li>
+            <li><strong>link from</strong> <code class="rounded bg-muted px-1">{{ entry }}</code> and <code class="rounded bg-muted px-1">{{ docs }}/plan.md</code></li>
+            <li><strong>links to</strong> <code class="rounded bg-muted px-1">{{ docs }}/testing/ui.md</code></li>
+            <li><strong>body</strong> empty</li>
+          </ul>
+          <p class="mt-3">Four edits happen. The new file, from the template plus your <em>links to</em>:</p>
+          <pre class="mt-1 rounded-md bg-muted px-3 py-2 text-[12px]"># Perf
+
+Performance regression check
+
+Entered from `{{ entry }}`. When finished, return to `{{ entry }}`.
+
+Related: `{{ docs }}/testing/ui.md`.</pre>
+          <p class="mt-3">One row appended to the first table in <code class="rounded bg-muted px-1">{{ entry }}</code>:</p>
+          <pre class="mt-1 rounded-md bg-muted px-3 py-2 text-[12px]">| Performance regression check | `{{ docs }}/testing/perf.md` |</pre>
+          <p class="mt-3">One line at the end of <code class="rounded bg-muted px-1">{{ docs }}/plan.md</code>, the other parent:</p>
+          <pre class="mt-1 rounded-md bg-muted px-3 py-2 text-[12px]">See also `{{ docs }}/testing/perf.md` — Performance regression check.</pre>
+          <p class="mt-3">And if you ticked a <em>return row</em>, one row in that doc's <em>Came from / Return to</em> table:</p>
+          <pre class="mt-1 rounded-md bg-muted px-3 py-2 text-[12px]">| `{{ docs }}/testing/perf.md` | `{{ docs }}/testing/perf.md` (continue perf flow) |</pre>
+          <p class="mt-3">In the graph: a new card with two arrows in, from <code class="rounded bg-muted px-1">{{ entry }}</code> and <code class="rounded bg-muted px-1">plan.md</code>, and one arrow out, to <code class="rounded bg-muted px-1">ui.md</code>. If you paste or drop your own body, only the <em>Related</em> line is appended to it.</p>
+        </div>
+
+        <div>
           <h3 class="mb-1 text-[11px] font-medium lowercase tracking-wide text-muted-foreground">reading and moving around</h3>
           <ul class="list-disc space-y-1 pl-5">
             <li>Click a card to read it. Paths inside the text are clickable and jump to that card.</li>
