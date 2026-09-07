@@ -14,5 +14,7 @@ export const api = {
   file: (p: string) => fetch(`/api/file?p=${encodeURIComponent(p)}`).then((r) => ok<{ path: string; content: string }>(r)),
   unlink: (from: string, ref: string) =>
     fetch('/api/unlink', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ from, ref }) }).then((r) => ok<{ removed: number }>(r)),
+  relink: (from: string, ref: string, to: string) =>
+    fetch('/api/relink', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ from, ref, to }) }).then((r) => ok<{ changed: number }>(r)),
   create: (form: FormData) => fetch('/api/create', { method: 'POST', body: form }).then((r) => ok<{ path: string }>(r)),
 }

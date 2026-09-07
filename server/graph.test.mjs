@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { create, insertRow, scan, unlink } from './graph.mjs'
+import { create, insertRow, relink, scan, unlink } from './graph.mjs'
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'ctx-'))
@@ -57,4 +57,15 @@ test('scan lists references to missing docs and unlink cleans the safe ones', ()
   assert.match(plan, /Related: `docs\/plan-mode.md`\.\n$/)
   assert.doesNotMatch(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), /gone/)
   assert.equal(scan(root).broken.length, 1)
+})
+
+test('relink repoints or strips a reference inside prose', () => {
+  const root = fixture()
+  writeFileSync(join(root, 'docs/plan.md'), '# Plan\n\nAsk which flow (`plan.md` vs `ui.md` vs other). See [the checklist](ui.md) too.\n')
+  assert.equal(relink(root, 'docs/plan.md', 'ui.md', 'docs/testing/ui.md'), 2)
+  assert.equal(readFileSync(join(root, 'docs/plan.md'), 'utf8'), '# Plan\n\nAsk which flow (`plan.md` vs `docs/testing/ui.md` vs other). See [the checklist](docs/testing/ui.md) too.\n')
+  assert.equal(scan(root).broken.length, 0)
+  writeFileSync(join(root, 'docs/plan.md'), '# Plan\n\nRead the skill (and its `PICKER.md`). See [picker](PICKER.md).\n')
+  assert.equal(relink(root, 'docs/plan.md', 'PICKER.md', ''), 2)
+  assert.equal(readFileSync(join(root, 'docs/plan.md'), 'utf8'), '# Plan\n\nRead the skill (and its). See picker.\n')
 })

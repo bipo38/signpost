@@ -121,8 +121,23 @@ onMounted(() => {
 
 const rootName = computed(() => graph.value?.root.split('/').pop())
 
-async function unlink(from: string, ref: string) {
-  await api.unlink(from, ref)
+async function unlink(b: { from: string; ref: string; fixable: boolean }) {
+  // Table rows and "See also" lines are dropped whole; in prose only the reference is stripped.
+  await (b.fixable ? api.unlink(b.from, b.ref) : api.relink(b.from, b.ref, ''))
+  await load()
+  if (graph.value?.broken.length) mode.value = 'broken'
+}
+const fixTarget = ref<Record<string, string>>({})
+const fixKey = (b: { from: string; line: number; ref: string }) => `${b.from}:${b.line}:${b.ref}`
+// Best guess for a replacement: a doc with the same file name.
+function suggest(ref: string) {
+  const name = ref.split('/').pop()
+  return graph.value?.nodes.find((n) => n.path.split('/').pop() === name)?.path ?? ''
+}
+async function relink(b: { from: string; ref: string; line: number }) {
+  const to = fixTarget.value[fixKey(b)] ?? suggest(b.ref)
+  if (!to) return
+  await api.relink(b.from, b.ref, to)
   await load()
   if (graph.value?.broken.length) mode.value = 'broken'
 }
@@ -189,16 +204,23 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
             <h2 class="font-display text-[24px] leading-none">broken links</h2>
             <button class="text-[11px] text-muted-foreground hover:text-foreground" @click="mode = 'view'">close</button>
           </div>
-          <p class="mb-4 text-[12.5px] text-muted-foreground">References to docs that no longer exist. Table rows, "See also" and "Related" entries can be removed here; prose needs a human edit, open the doc.</p>
+          <p class="mb-4 text-[12.5px] text-muted-foreground">References to docs that no longer exist. <strong>replace</strong> points the reference at another doc. <strong>remove</strong> drops a table row or "See also" line, and in prose strips just the reference.</p>
           <ul class="space-y-3">
-            <li v-for="b in graph.broken" :key="`${b.from}:${b.line}:${b.ref}`" class="rounded-md border bg-card px-3 py-2.5 text-[12.5px]">
+            <li v-for="b in graph.broken" :key="fixKey(b)" class="rounded-md border bg-card px-3 py-2.5 text-[12.5px]">
               <div class="flex items-center justify-between gap-2">
                 <button class="truncate text-left font-medium hover:underline underline-offset-3" @click="select(b.from)">{{ b.from }}<span class="font-normal text-muted-foreground">:{{ b.line }}</span></button>
-                <button v-if="b.fixable" class="shrink-0 rounded-sm border px-2 py-0.5 text-[11px] text-destructive hover:bg-destructive/10" @click="unlink(b.from, b.ref)">remove</button>
-                <span v-else class="shrink-0 text-[11px] text-muted-foreground">prose</span>
+                <span class="shrink-0 text-[11px] text-muted-foreground">{{ b.fixable ? 'table / list' : 'prose' }}</span>
               </div>
               <div class="mt-1 text-[11px] text-muted-foreground">missing <code class="rounded bg-muted px-1">{{ b.ref }}</code></div>
-              <pre class="mt-1.5 truncate rounded bg-muted px-2 py-1 text-[11px]">{{ b.text }}</pre>
+              <pre class="mt-1.5 overflow-x-auto whitespace-pre rounded bg-muted px-2 py-1 text-[11px]">{{ b.text }}</pre>
+              <div class="mt-2 flex items-center gap-1.5">
+                <select :value="fixTarget[fixKey(b)] ?? suggest(b.ref)" class="h-7 min-w-0 flex-1 rounded-md border bg-card px-1.5 text-[11.5px] outline-none focus-visible:border-ring" @change="fixTarget[fixKey(b)] = ($event.target as HTMLSelectElement).value">
+                  <option value="" disabled>replace with…</option>
+                  <option v-for="n in graph.nodes" :key="n.path" :value="n.path">{{ n.path }}</option>
+                </select>
+                <button class="h-7 shrink-0 rounded-md bg-primary px-2.5 text-[11.5px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50" :disabled="!(fixTarget[fixKey(b)] ?? suggest(b.ref))" @click="relink(b)">replace</button>
+                <button class="h-7 shrink-0 rounded-md border px-2.5 text-[11.5px] text-destructive hover:bg-destructive/10" @click="unlink(b)">remove</button>
+              </div>
             </li>
           </ul>
         </template>

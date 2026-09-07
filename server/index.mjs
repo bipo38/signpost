@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { exec } from 'node:child_process'
-import { create, scan, unlink } from './graph.mjs'
+import { create, relink, scan, unlink } from './graph.mjs'
 
 const DIST = join(import.meta.dirname, '..', 'dist')
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' }
@@ -32,6 +32,13 @@ export function serve({ root, docs, port, open }) {
           returnRows: f.getAll('returnRows'),
         }, opts)
         return json(201, { path })
+      }
+      if (url.pathname === '/api/relink' && req.method === 'POST') {
+        const { from, ref, to } = JSON.parse(await new Response(req).text())
+        const g = scan(root, opts)
+        if (!g.nodes.some((n) => n.path === from)) return json(404, { error: 'unknown file' })
+        if (to && !g.nodes.some((n) => n.path === to)) return json(400, { error: `${to} is not a doc in this graph` })
+        return json(200, { changed: relink(root, from, ref, to) })
       }
       if (url.pathname === '/api/unlink' && req.method === 'POST') {
         const { from, ref } = JSON.parse(await new Response(req).text())

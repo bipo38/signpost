@@ -117,3 +117,17 @@ export function create(root, { path, situation, body, parents = [], links = [], 
   }
   return path
 }
+
+// Rewrite every reference to `ref` in `from`: with `to` set, point it at `to`; with `to` empty, strip the
+// reference itself (a backticked path disappears, a markdown link keeps its text). Prose stays otherwise intact.
+export function relink(root, from, ref, to) {
+  const file = join(root, from)
+  const esc = ref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  let n = 0
+  const text = readFileSync(file, 'utf8')
+    .replace(new RegExp('`' + esc + '`', 'g'), () => { n++; return to ? '`' + to + '`' : '' })
+    .replace(new RegExp('\\[([^\\]]*)\\]\\(' + esc + '\\)', 'g'), (_, label) => { n++; return to ? `[${label}](${to})` : label })
+    .replace(/ {2,}([.,;)])/g, '$1').replace(/\( +/g, '(').replace(/ +\)/g, ')')
+  if (n) writeFileSync(file, text)
+  return n
+}
