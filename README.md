@@ -85,8 +85,6 @@ pnpm test             # node:test on server/graph.mjs
 pnpm build            # dist/ served by the bin
 ```
 
-Stack: Node `http` server, Vue 3, Vue Flow with a hand-rolled rank layout (`src/layout.ts`, tested), Tailwind 4, marked. Styling tokens are shared with [portfolio-2025](https://github.com/bipo38).
-
 ## License
 
 MIT
