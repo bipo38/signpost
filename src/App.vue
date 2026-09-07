@@ -129,7 +129,7 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
           :nodes-draggable="true"
           :nodes-connectable="false"
           :elements-selectable="true"
-          fit-view-on-init
+          @pane-ready="fit"
           @node-click="select($event.node.id)"
           @pane-click="selected = null"
         >
