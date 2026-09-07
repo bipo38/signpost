@@ -118,8 +118,19 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .panel p { font-size: 13.5px; margin: 0 0 10px; }
 .v3 .panel p code, .v3 .panel li code { font-size: 12px; background: var(--muted); padding: 1px 5px; border-radius: 4px; color: var(--primary); cursor: pointer; }
 .v3 .panel ul { font-size: 13.5px; padding-left: 20px; margin: 0 0 10px; }
-.v3 .panel .related { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted-foreground); }
-.v3 .panel .related code { color: var(--primary); cursor: pointer; }
+/* LinkedDocs, ported from src/components/LinkedDocs.vue */
+.v3 .linked { margin-bottom: 20px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); padding: 8px 8px 4px; }
+.v3 .linked svg { display: block; width: 100%; overflow: visible; }
+.v3 .linked .fan { animation: fan-in 260ms var(--ease-out) both; animation-delay: calc(var(--i) * 20ms); }
+@keyframes fan-in { from { opacity: 0; } to { opacity: 1; } }
+.v3 .linked circle[data-go] { cursor: pointer; }
+.v3 .linked .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; padding: 4px 4px 0; font-size: 11px; line-height: 18px; }
+.v3 .linked .legend .in { color: var(--accent-success); } .v3 .linked .legend .out { color: var(--accent-orange); }
+.v3 .linked .legend .n { color: var(--muted-foreground); }
+.v3 .linked .legend button { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; line-height: 22px; border: 0; background: none; padding: 0; color: var(--muted-foreground); transition: color 150ms ease-out; }
+.v3 .linked .legend button:hover { color: var(--foreground); }
+.v3 .linked .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 4px; vertical-align: middle; }
+.v3 .linked .legend .x { margin-left: 4px; font-size: 10px; }
 .v3 .below { max-width: 1040px; margin: 0 auto; padding: 72px 24px 140px; width: 100%; }
 .v3 .below h1 { font-family: var(--font-display); font-size: 40px; font-weight: 400; line-height: 1.1; margin: 0 0 16px; max-width: 24ch; }
 .v3 .below .lede { color: var(--muted-foreground); font-size: 16px; max-width: 60ch; margin: 0 0 28px; }
@@ -129,7 +140,7 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .below .footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--border); }
 
 @media (prefers-reduced-motion: reduce) {
-  .v3 .node, .v3 .edge.draw { animation: none !important; }
+  .v3 .node, .v3 .edge.draw, .v3 .linked .fan { animation: none !important; }
   .v3 .edge.draw { stroke-dashoffset: 0; }
 }
 
@@ -184,6 +195,43 @@ const EDGES = [
 const NW = 150, NH = 44;
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 const fullPath = n => n.dir === '/' ? n.id : `${n.dir}/${n.id}`;
+// Stable hue per folder (src/layout.ts folderColor). Root files stay neutral.
+function folderColor(path) {
+  const folder = path.split('/').slice(0, -1).join('/');
+  if (!folder) return 'var(--muted-foreground)';
+  let h = 0; for (const c of folder) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `oklch(0.72 0.13 ${h % 360})`;
+}
+const nameOf = p => p.split('/').pop();
+// LinkedDocs fan: inbound from above, outbound below, legend beneath.
+function linkedDocs(id) {
+  const W = 312, MID = 62, H = 118;
+  const x = (i, n) => (W / (n + 1)) * (i + 1);
+  const inb = EDGES.filter(e => e[1] === id).map(e => ({ path: fullPath(byId[e[0]]), id: e[0], count: e[2], color: folderColor(fullPath(byId[e[0]])) }));
+  const outb = EDGES.filter(e => e[0] === id).map(e => ({ path: fullPath(byId[e[1]]), id: e[1], count: e[2], color: folderColor(fullPath(byId[e[1]])) }));
+  if (!inb.length && !outb.length) return '';
+  const legend = (list) => list.map(l => `<button data-go="${l.id}" title="${l.path}"><span class="dot" style="background:${l.color}"></span>${nameOf(l.path)}${l.count > 1 ? `<span class="x">×${l.count}</span>` : ''}</button>`).join('');
+  return `<div class="linked">
+    <svg viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      ${inb.map((l, i) => `<g class="fan" style="--i:${i}">
+        <path d="M${x(i, inb.length)} 14 C ${x(i, inb.length)} ${MID - 22}, ${W / 2} ${MID - 30}, ${W / 2} ${MID - 12}" fill="none" stroke="var(--accent-success)" stroke-opacity="0.45" stroke-width="1.25"/>
+        <circle cx="${x(i, inb.length)}" cy="12" r="5" fill="${l.color}" data-go="${l.id}"><title>${l.path}</title></circle>
+        ${l.count > 1 ? `<text x="${x(i, inb.length) + 8}" y="9" font-size="9" fill="var(--muted-foreground)">${l.count}</text>` : ''}
+      </g>`).join('')}
+      <rect x="${W / 2 - 60}" y="${MID - 12}" width="120" height="24" rx="5" fill="var(--background)" stroke="var(--accent-orange)" stroke-width="1"/>
+      <text x="${W / 2}" y="${MID + 4}" text-anchor="middle" font-size="11" font-weight="500" fill="var(--foreground)">${id}</text>
+      ${outb.map((l, i) => `<g class="fan" style="--i:${i}">
+        <path d="M${W / 2} ${MID + 12} C ${W / 2} ${MID + 30}, ${x(i, outb.length)} ${MID + 22}, ${x(i, outb.length)} ${MID + 40}" fill="none" stroke="var(--accent-orange)" stroke-opacity="0.55" stroke-width="1.25" marker-end="url(#linked-arrow)"/>
+        <circle cx="${x(i, outb.length)}" cy="${MID + 44}" r="5" fill="${l.color}" data-go="${l.id}"><title>${l.path}</title></circle>
+      </g>`).join('')}
+      <defs><marker id="linked-arrow" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--accent-orange)" fill-opacity="0.7"/></marker></defs>
+    </svg>
+    <div class="legend">
+      <div><div class="in">↓ pointed from <span class="n">${inb.length}</span></div>${legend(inb)}</div>
+      <div><div class="out">↑ points to <span class="n">${outb.length}</span></div>${legend(outb)}</div>
+    </div>
+  </div>`;
+}
 const inout = id => [EDGES.filter(e => e[1] === id).length, EDGES.filter(e => e[0] === id).length];
 
 function edgePath(a, b) {
@@ -244,10 +292,9 @@ function wireV3() {
   const select = id => {
     const n = byId[id]; if (!n) return;
     nodes.forEach(el => el.classList.toggle('selected', el.dataset.id === id));
-    const outs = EDGES.filter(e => e[0] === id).map(e => fullPath(byId[e[1]]));
     panel.innerHTML = `<div class="path"><span>${fullPath(n)}</span><span>${n.entry ? 'entry' : ''}</span></div>
-      <h2>${n.title}</h2>${n.body}
-      <div class="related">${outs.length ? 'links to ' + outs.map(p => `<code data-go="${p.split('/').pop()}">${p}</code>`).join(', ') : 'links to nothing'}</div>`;
+      ${linkedDocs(id)}
+      <h2>${n.title}</h2>${n.body}`;
   };
   nodes.forEach(el => {
     el.addEventListener('click', () => select(el.dataset.id));
@@ -255,7 +302,7 @@ function wireV3() {
     el.addEventListener('mouseleave', () => { canvas.removeAttribute('data-hover'); edges.forEach(e => e.classList.remove('lit')); });
   });
   panel.addEventListener('click', e => {
-    const c = e.target.closest('code'); if (!c) return;
+    const c = e.target.closest('[data-go], code'); if (!c) return;
     const id = c.dataset.go || c.textContent.split('/').pop();
     if (byId[id]) select(id);
   });
