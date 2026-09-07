@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import { VueFlow, useVueFlow, type Edge as FlowEdge, type Node as FlowNode } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -10,23 +10,30 @@ import DocNode from './components/DocNode.vue'
 import NewDocForm from './components/NewDocForm.vue'
 
 const graph = ref<Graph | null>(null)
-const nodes = ref<FlowNode[]>([])
-const edges = ref<FlowEdge[]>([])
+const nodes = shallowRef<FlowNode[]>([])
+const edges = shallowRef<FlowEdge[]>([])
 const selected = ref<string | null>(null)
 const content = ref('')
 const mode = ref<'view' | 'create'>('view')
 const loadError = ref('')
 const { fitView } = useVueFlow()
 
+// Recompute the dagre layout from the current graph and fit it into view.
+function reorder() {
+  if (!graph.value) return
+  const f = toFlow(graph.value)
+  nodes.value = f.nodes
+  edges.value = f.edges
+  highlight(selected.value)
+  requestAnimationFrame(() => fitView({ padding: 0.15, duration: 300 }))
+}
+
 async function load(focus?: string) {
   try {
     graph.value = await api.graph()
-    const f = toFlow(graph.value)
-    nodes.value = f.nodes
-    edges.value = f.edges
     loadError.value = ''
     if (focus) select(focus)
-    requestAnimationFrame(() => fitView({ padding: 0.15, duration: 300 }))
+    reorder()
   } catch (e) {
     loadError.value = (e as Error).message
   }
@@ -39,9 +46,11 @@ async function select(path: string) {
 }
 
 // Highlight the edges touching the selected node; dim the rest.
-watch(selected, (s) => {
-  edges.value = edges.value.map((e) => ({ ...e, class: !s ? '' : e.source === s || e.target === s ? 'lit' : 'dim' }))
-})
+function highlight(s: string | null) {
+  for (const e of edges.value) e.class = !s ? '' : e.source === s || e.target === s ? 'lit' : 'dim'
+  edges.value = [...edges.value]
+}
+watch(selected, highlight)
 
 const nodeSet = computed(() => new Set(graph.value?.nodes.map((n) => n.path)))
 const html = computed(() => {
@@ -83,12 +92,13 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
       </div>
       <div class="flex items-center gap-1.5">
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="load(selected ?? undefined)">rescan</button>
+        <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="Reset positions to the automatic layout" @click="reorder">reorder</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :aria-pressed="dark" @click="setDark(!dark)">{{ dark ? 'light' : 'dark' }}</button>
         <button class="ml-1 h-8 rounded-md bg-primary px-3 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90" @click="mode = 'create'; selected = null">new doc</button>
       </div>
     </header>
 
-    <div class="grid min-h-0 grid-cols-[1fr_400px]">
+    <div class="grid min-h-0 grid-cols-[1fr_360px]">
       <div class="relative min-h-0">
         <VueFlow
           v-model:nodes="nodes"

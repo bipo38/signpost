@@ -17,8 +17,8 @@ const nameOf = (p: string) => p.split('/').pop()
   >
     <span class="corner corner-tl" /><span class="corner corner-tr" />
     <span class="corner corner-bl" /><span class="corner corner-br" />
-    <Handle type="target" :position="Position.Top" />
-    <Handle type="source" :position="Position.Bottom" />
+    <Handle type="target" :position="Position.Left" />
+    <Handle type="source" :position="Position.Right" />
 
     <div class="flex items-baseline justify-between gap-2">
       <span class="truncate text-[13px] font-medium leading-tight">{{ nameOf(data.path) }}</span>

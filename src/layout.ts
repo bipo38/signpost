@@ -7,7 +7,7 @@ export const NODE_H = 64
 
 export function toFlow(g: Graph): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const dg = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}))
-  dg.setGraph({ rankdir: 'TB', nodesep: 56, ranksep: 110, marginx: 20, marginy: 20 })
+  dg.setGraph({ rankdir: 'LR', nodesep: 28, ranksep: 90, marginx: 20, marginy: 20 })
   for (const n of g.nodes) dg.setNode(n.path, { width: NODE_W, height: NODE_H })
   for (const e of g.edges) dg.setEdge(e.from, e.to)
   dagre.layout(dg)
