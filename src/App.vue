@@ -90,11 +90,11 @@ const dark = ref(false)
 function setDark(v: boolean) {
   dark.value = v
   document.documentElement.classList.toggle('dark', v)
-  try { localStorage.setItem('ctx-graph:dark', String(v)) } catch {}
+  try { localStorage.setItem('signpost:dark', String(v)) } catch {}
 }
 onMounted(() => {
   let stored: string | null = null
-  try { stored = localStorage.getItem('ctx-graph:dark') } catch {}
+  try { stored = localStorage.getItem('signpost:dark') } catch {}
   setDark(stored ? stored === 'true' : matchMedia('(prefers-color-scheme: dark)').matches)
   load()
 })
@@ -106,7 +106,7 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
   <div class="grid h-full grid-rows-[auto_1fr]">
     <header class="flex items-center justify-between border-b px-5 py-3">
       <div class="flex items-baseline gap-3">
-        <h1 class="font-display text-[22px] leading-none">ctx-graph</h1>
+        <h1 class="font-display text-[22px] leading-none">signpost</h1>
         <span v-if="graph" class="text-[12.5px] text-muted-foreground">
           <span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links
         </span>

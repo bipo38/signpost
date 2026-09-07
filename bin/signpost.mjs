@@ -15,7 +15,7 @@ const { values } = parseArgs({
   allowPositionals: true, // pnpm forwards a bare "--"
 })
 if (values.help) {
-  console.log(`ctx-graph [--root .] [--docs docs] [--port 4747] [--no-open]
+  console.log(`signpost [--root .] [--docs docs] [--port 4747] [--no-open]
 
 Serves a graph of the context-pointer docs behind CLAUDE.md / AGENTS.md in --root,
 and a form to add new docs wired into them.`)

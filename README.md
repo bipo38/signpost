@@ -1,6 +1,8 @@
-# ctx-graph
+# Signpost
 
 Visualize the context-pointer docs behind a `CLAUDE.md` / `AGENTS.md` file as a graph, and add new docs already wired into it.
+
+![Signpost showing the comsart docs graph with plan.md selected](docs/screenshot.jpg)
 
 Framework agnostic: it only reads markdown. Zero runtime dependencies; the UI ships prebuilt.
 
@@ -9,29 +11,29 @@ Framework agnostic: it only reads markdown. Zero runtime dependencies; the UI sh
 The repo is private and not on npm, so install from GitHub (the `prepare` script builds the UI on install):
 
 ```sh
-pnpm add -D github:bipo38/ctx-graph      # in the project whose docs you want to see
-# package.json → "scripts": { "docs:graph": "ctx-graph" }
+pnpm add -D github:bipo38/signpost      # in the project whose docs you want to see
+# package.json → "scripts": { "docs:graph": "signpost" }
 pnpm docs:graph
 ```
 
 One-off, without adding a dependency:
 
 ```sh
-npx github:bipo38/ctx-graph
+npx github:bipo38/signpost
 ```
 
 Local clone linked into a sibling project:
 
 ```sh
-git clone git@github.com:bipo38/ctx-graph.git && cd ctx-graph && pnpm install   # builds dist/
-cd ../your-project && pnpm add -D link:../ctx-graph
+git clone git@github.com:bipo38/signpost.git && cd signpost && pnpm install   # builds dist/
+cd ../your-project && pnpm add -D link:../signpost
 ```
 
 ## Run
 
 ```sh
-ctx-graph                     # from a repo root; opens http://localhost:4747
-ctx-graph --root ../other --docs documentation --port 5000 --no-open
+signpost                     # from a repo root; opens http://localhost:4747
+signpost --root ../other --docs documentation --port 5000 --no-open
 ```
 
 ## Using it

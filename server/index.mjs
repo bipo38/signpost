@@ -45,7 +45,7 @@ export function serve({ root, docs, port, open }) {
   })
   server.listen(port, () => {
     const addr = `http://localhost:${port}`
-    console.log(`ctx-graph → ${addr}  (root: ${root})`)
+    console.log(`signpost → ${addr}  (root: ${root})`)
     if (open) exec(`${process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'} ${addr}`)
   })
   return server
