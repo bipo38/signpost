@@ -2,7 +2,7 @@
 
 Visualize the context-pointer docs behind a `CLAUDE.md` / `AGENTS.md` file as a graph, and add new docs already wired into it.
 
-![Signpost showing the comsart docs graph with plan.md selected](docs/screenshot.jpg)
+![Signpost in light mode showing the comsart docs graph with plan.md selected](docs/screenshot.jpg)
 
 Framework agnostic: it only reads markdown. Zero runtime dependencies; the UI ships prebuilt.
 
