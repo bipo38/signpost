@@ -17,6 +17,8 @@ const edges = shallowRef<FlowEdge[]>([])
 const selected = ref<string | null>(null)
 const content = ref('')
 const mode = ref<'view' | 'create' | 'broken'>('view')
+// Broken-links badge and panel, hidden for now; flip to true to bring them back.
+const SHOW_BROKEN = false
 const hovered = ref<string | null>(null)
 // Dense graphs draw only the edges touching the selected or hovered doc; everything else would be a wall of lines.
 const dense = computed(() => (graph.value?.edges.length ?? 0) > DENSE_EDGES)
@@ -152,7 +154,7 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
         <span v-if="graph" class="text-[12.5px] text-muted-foreground">
           <span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links
           <span v-if="dense" class="ml-2 rounded-sm bg-muted px-1.5 py-px text-[11px]">dense · links shown for the hovered or selected doc</span>
-          <button v-if="graph.broken.length" class="ml-2 rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
+          <button v-if="SHOW_BROKEN && graph.broken.length" class="ml-2 rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
             {{ graph.broken.length }} broken {{ graph.broken.length === 1 ? 'link' : 'links' }}
           </button>
         </span>
