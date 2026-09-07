@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>signpost — a graph of the docs behind your CLAUDE.md</title>
+<title>signpost — a graph of the docs behind your CLAUDE.md or AGENTS.md</title>
 <meta name="description" content="Visualize the context-pointer docs behind a CLAUDE.md / AGENTS.md file as a graph, and add new docs already wired into it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -299,8 +299,8 @@ const v3 = () => `<div class="v3">
   </div>
 
   <div class="below" id="about">
-    <h1>Your CLAUDE.md is a graph. Signpost draws it.</h1>
-    <p class="lede">Point it at your repo: it reads the entry file, every markdown doc under <code>docs/</code>, and every path they mention. Nothing is written until you press create.</p>
+    <h1>Your CLAUDE.md or AGENTS.md is a graph. Signpost draws it.</h1>
+    <p class="lede">Point it at your repo: it starts from <code>CLAUDE.md</code>, or <code>AGENTS.md</code> when that is what you have, then reads every markdown doc under <code>docs/</code> and every path they mention. Nothing is written until you press create.</p>
     <div class="cmd" style="max-width:520px"><span><span class="p">$</span>${NPX}</span>${copyBtn(NPX)}</div>
     <div class="cols">
       <div><h3>reads</h3><p class="dim" style="margin:0;font-size:14px">Backticked paths like <code>docs/plan.md</code> and markdown links become arrows. A number on an edge is how many times the doc is mentioned.</p></div>
