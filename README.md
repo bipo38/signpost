@@ -12,23 +12,21 @@ Agent instruction files tend to grow into a web of small markdown docs that poin
 
 ## Install
 
-Not on npm yet, so install from GitHub. The `prepare` script builds the UI on install.
-
 ```sh
-pnpm add -D github:bipo38/signpost      # or npm i -D / yarn add -D
+npx @brotzi/signpost            # one-off, from the repo root
 ```
 
-Then add a script and run it from the repo root:
+Or add it to a project and give it a script:
+
+```sh
+pnpm add -D @brotzi/signpost    # or npm i -D / yarn add -D
+```
 
 ```json
 "scripts": { "docs:graph": "signpost" }
 ```
 
-One-off, without adding a dependency:
-
-```sh
-npx github:bipo38/signpost
-```
+Requires Node 20 or newer. Nothing else: the UI ships prebuilt and the server has no dependencies.
 
 ## Run
 
