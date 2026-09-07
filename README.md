@@ -55,7 +55,7 @@ Nothing is written until you press **create doc**.
 
 ## Using the graph
 
-- **Read.** Click a card to render the doc on the right. Backticked paths inside it are links to the other cards.
+- **Read.** Click a card to render the doc on the right, under a small diagram of what points at it and what it points to. Every dot and name there, and every backticked path in the text, jumps to that card.
 - **Arrange.** Cards are ranked left to right by link distance from the entry doc, clustered by folder, and tinted per folder. Drag them freely. **reorder** puts them back and refits the view. **rescan** re-reads the files after you edit them outside the tool.
 - **Dense graphs.** Above 250 links, edges are drawn only for the hovered or selected doc, so a few hundred docs stay readable and load instantly.
 - **Panel.** The icon at the far right of the header hides or shows the side panel. Selecting a card or pressing **new doc** opens it again.

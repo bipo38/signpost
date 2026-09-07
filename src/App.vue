@@ -9,6 +9,7 @@ import { DENSE_EDGES, NODE_H, NODE_W, toFlow } from './layout'
 import DocNode from './components/DocNode.vue'
 import NewDocForm from './components/NewDocForm.vue'
 import InfoDialog from './components/InfoDialog.vue'
+import LinkedDocs from './components/LinkedDocs.vue'
 
 const graph = ref<Graph | null>(null)
 const nodes = shallowRef<FlowNode[]>([])
@@ -206,6 +207,7 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
             <code class="truncate">{{ selected }}</code>
             <button class="shrink-0 hover:text-foreground" @click="selected = null">close</button>
           </div>
+          <LinkedDocs v-if="graph" :key="selected" :graph="graph" :path="selected" @go="select" />
           <article class="prose-doc" @click="onProseClick" v-html="html" />
         </template>
         <div v-else class="flex h-full flex-col justify-center gap-2 text-center text-[13px] text-muted-foreground">
