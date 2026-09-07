@@ -5,7 +5,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { marked } from 'marked'
 import { api, type Graph } from './api'
-import { toFlow } from './layout'
+import { NODE_H, toFlow } from './layout'
 import DocNode from './components/DocNode.vue'
 import NewDocForm from './components/NewDocForm.vue'
 
@@ -16,13 +16,24 @@ const selected = ref<string | null>(null)
 const content = ref('')
 const mode = ref<'view' | 'create'>('view')
 const panelOpen = ref(true)
-const fit = () => fitView({ padding: 0.06, duration: 300 })
+// Fit everything, but never below MIN_ZOOM: a long chain in a narrow window would be unreadable,
+// so in that case anchor the left end (the entry doc) and let the user pan.
+const MIN_ZOOM = 0.6
+function fit() {
+  fitView({ padding: 0.06 })
+  if (getViewport().zoom >= MIN_ZOOM || !nodes.value.length) return
+  const ys = nodes.value.map((n) => n.position.y)
+  const minX = Math.min(...nodes.value.map((n) => n.position.x))
+  const minY = Math.min(...ys)
+  const graphH = Math.max(...ys) + NODE_H - minY
+  setViewport({ x: 24 - minX * MIN_ZOOM, y: (dimensions.value.height - graphH * MIN_ZOOM) / 2 - minY * MIN_ZOOM, zoom: MIN_ZOOM }, { duration: 300 })
+}
 function togglePanel(open = !panelOpen.value) {
   panelOpen.value = open
   nextTick(fit)
 }
 const loadError = ref('')
-const { fitView } = useVueFlow()
+const { fitView, getViewport, setViewport, dimensions } = useVueFlow()
 
 // Recompute the dagre layout from the current graph and fit it into view.
 function reorder() {
