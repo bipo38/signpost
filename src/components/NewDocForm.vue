@@ -16,6 +16,8 @@ const error = ref('')
 const busy = ref(false)
 const dragging = ref(false)
 
+const filter = ref('')
+const visible = computed(() => props.graph.nodes.filter((n) => n.path.toLowerCase().includes(filter.value.toLowerCase())))
 const effectivePath = computed(() => path.value || (file.value ? `${props.graph.docs}/${file.value.name}` : ''))
 
 async function pick(f: File | null | undefined) {
@@ -61,26 +63,39 @@ const label = 'mb-1.5 block text-[11px] font-medium lowercase tracking-wide text
       <input id="situation" v-model="situation" :class="field" placeholder="Performance regression check" required />
     </div>
 
-    <fieldset>
-      <legend :class="label">link from</legend>
-      <div class="grid grid-cols-1 gap-y-1.5">
-        <label v-for="n in graph.nodes" :key="n.path" class="flex items-center gap-2.5 text-[13px]">
-          <input v-model="parents" type="checkbox" :value="n.path" class="size-3.5 accent-[var(--accent-orange)]" />
-          <span class="truncate">{{ n.path }}</span>
-          <span v-if="n.path === graph.entry" class="text-[10px] text-muted-foreground">table row</span>
-        </label>
+    <details class="group rounded-md border bg-card">
+      <summary class="flex cursor-pointer items-center justify-between px-3 py-2 text-[12.5px] select-none">
+        <span><span class="font-medium">link from</span> <span class="text-muted-foreground">· {{ parents.length }} selected</span></span>
+        <span class="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div class="border-t px-3 py-2">
+        <input v-if="graph.nodes.length > 12" v-model="filter" :class="field" class="mb-2 h-8" placeholder="filter docs…" />
+        <p class="mb-2 text-[11px] text-muted-foreground">{{ graph.entry }} gets a table row; any other parent gets a "See also" line.</p>
+        <div class="grid max-h-56 grid-cols-1 gap-y-1.5 overflow-y-auto">
+          <label v-for="n in visible" :key="n.path" class="flex items-center gap-2.5 text-[13px]">
+            <input v-model="parents" type="checkbox" :value="n.path" class="size-3.5 shrink-0 accent-[var(--accent-orange)]" />
+            <span class="truncate">{{ n.path }}</span>
+          </label>
+        </div>
       </div>
-    </fieldset>
+    </details>
 
-    <fieldset>
-      <legend :class="label">links to <span class="normal-case tracking-normal">· "Related" line in the new doc</span></legend>
-      <div class="grid grid-cols-1 gap-y-1.5">
-        <label v-for="n in graph.nodes" :key="n.path" class="flex items-center gap-2.5 text-[13px]">
-          <input v-model="links" type="checkbox" :value="n.path" class="size-3.5 accent-[var(--accent-orange)]" />
-          <span class="truncate">{{ n.path }}</span>
-        </label>
+    <details class="group rounded-md border bg-card">
+      <summary class="flex cursor-pointer items-center justify-between px-3 py-2 text-[12.5px] select-none">
+        <span><span class="font-medium">links to</span> <span class="text-muted-foreground">· {{ links.length }} selected</span></span>
+        <span class="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div class="border-t px-3 py-2">
+        <input v-if="graph.nodes.length > 12" v-model="filter" :class="field" class="mb-2 h-8" placeholder="filter docs…" />
+        <p class="mb-2 text-[11px] text-muted-foreground">Appended to the new doc as a "Related" line.</p>
+        <div class="grid max-h-56 grid-cols-1 gap-y-1.5 overflow-y-auto">
+          <label v-for="n in visible" :key="n.path" class="flex items-center gap-2.5 text-[13px]">
+            <input v-model="links" type="checkbox" :value="n.path" class="size-3.5 shrink-0 accent-[var(--accent-orange)]" />
+            <span class="truncate">{{ n.path }}</span>
+          </label>
+        </div>
       </div>
-    </fieldset>
+    </details>
 
     <fieldset v-if="graph.returnTables.length">
       <legend :class="label">return row</legend>

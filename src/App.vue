@@ -5,9 +5,10 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { marked } from 'marked'
 import { api, type Graph } from './api'
-import { NODE_H, NODE_W, toFlow } from './layout'
+import { DENSE_EDGES, NODE_H, NODE_W, toFlow } from './layout'
 import DocNode from './components/DocNode.vue'
 import NewDocForm from './components/NewDocForm.vue'
+import InfoDialog from './components/InfoDialog.vue'
 
 const graph = ref<Graph | null>(null)
 const nodes = shallowRef<FlowNode[]>([])
@@ -15,10 +16,16 @@ const edges = shallowRef<FlowEdge[]>([])
 const selected = ref<string | null>(null)
 const content = ref('')
 const mode = ref<'view' | 'create'>('view')
+const hovered = ref<string | null>(null)
+// Dense graphs draw only the edges touching the selected or hovered doc; everything else would be a wall of lines.
+const dense = computed(() => (graph.value?.edges.length ?? 0) > DENSE_EDGES)
 const panelOpen = ref(true)
 // Fit everything, but never below MIN_ZOOM: a long chain in a narrow window would be unreadable,
 // so in that case anchor the left end (the entry doc) and let the user pan.
 const MIN_ZOOM = 0.6
+const MAX_FIT_ZOOM = 1
+// Viewport is computed from the known card positions rather than fitView: with only visible
+// elements rendered, Vue Flow has nothing measured to fit on first paint.
 function fit() {
   const { width, height } = dimensions.value
   if (!nodes.value.length || !width) return
@@ -28,15 +35,19 @@ function fit() {
   const minY = Math.min(...ys)
   const graphW = Math.max(...xs) + NODE_W - minX
   const graphH = Math.max(...ys) + NODE_H - minY
-  if (Math.min(width / graphW, height / graphH) * 0.94 >= MIN_ZOOM) return fitView({ padding: 0.06, duration: 300 })
-  setViewport({ x: 24 - minX * MIN_ZOOM, y: (height - graphH * MIN_ZOOM) / 2 - minY * MIN_ZOOM, zoom: MIN_ZOOM }, { duration: 300 })
+  const fitZoom = Math.min(width / graphW, height / graphH) * 0.94
+  // Small graph that would fit only when tiny: floor the zoom and anchor the entry doc on the left instead.
+  const anchorLeft = fitZoom < MIN_ZOOM && nodes.value.length <= 30 && graphH * MIN_ZOOM <= height
+  const zoom = anchorLeft ? MIN_ZOOM : Math.min(fitZoom, MAX_FIT_ZOOM)
+  const x = anchorLeft ? 24 - minX * zoom : (width - graphW * zoom) / 2 - minX * zoom
+  setViewport({ x, y: (height - graphH * zoom) / 2 - minY * zoom, zoom }, { duration: 300 })
 }
 function togglePanel(open = !panelOpen.value) {
   panelOpen.value = open
   nextTick(fit)
 }
 const loadError = ref('')
-const { fitView, setViewport, dimensions } = useVueFlow()
+const { setViewport, dimensions } = useVueFlow()
 
 // Recompute the dagre layout from the current graph and fit it into view.
 function reorder() {
@@ -44,7 +55,7 @@ function reorder() {
   const f = toFlow(graph.value)
   nodes.value = f.nodes
   edges.value = f.edges
-  highlight(selected.value)
+  highlight()
   requestAnimationFrame(fit)
 }
 
@@ -67,11 +78,18 @@ async function select(path: string) {
 }
 
 // Highlight the edges touching the selected node; dim the rest.
-function highlight(s: string | null) {
-  for (const e of edges.value) e.class = !s ? '' : e.source === s || e.target === s ? 'lit' : 'dim'
+function highlight() {
+  const s = selected.value
+  const h = hovered.value
+  for (const e of edges.value) {
+    const touchesSel = !!s && (e.source === s || e.target === s)
+    const touchesHov = !!h && (e.source === h || e.target === h)
+    e.class = touchesSel ? 'lit' : s ? 'dim' : ''
+    if (dense.value) e.hidden = !touchesSel && !touchesHov
+  }
   edges.value = [...edges.value]
 }
-watch(selected, highlight)
+watch([selected, hovered], highlight)
 
 const nodeSet = computed(() => new Set(graph.value?.nodes.map((n) => n.path)))
 const html = computed(() => {
@@ -100,6 +118,7 @@ onMounted(() => {
 })
 
 const rootName = computed(() => graph.value?.root.split('/').pop())
+const info = ref<InstanceType<typeof InfoDialog> | null>(null)
 </script>
 
 <template>
@@ -109,9 +128,11 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
         <h1 class="font-display text-[22px] leading-none">signpost</h1>
         <span v-if="graph" class="text-[12.5px] text-muted-foreground">
           <span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links
+          <span v-if="dense" class="ml-2 rounded-sm bg-muted px-1.5 py-px text-[11px]">dense · links shown for the hovered or selected doc</span>
         </span>
       </div>
       <div class="flex items-center gap-1.5">
+        <button class="h-8 w-8 rounded-md text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="How it works" @click="info?.open()">?</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="load(selected ?? undefined)">rescan</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="Reset positions to the automatic layout" @click="reorder">reorder</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :aria-pressed="dark" @click="setDark(!dark)">{{ dark ? 'light' : 'dark' }}</button>
@@ -121,19 +142,23 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
         </button>
       </div>
     </header>
+    <InfoDialog v-if="graph" ref="info" :entry="graph.entry" :docs="graph.docs" />
 
     <div class="grid min-h-0" :class="panelOpen ? 'grid-cols-[1fr_360px]' : 'grid-cols-[1fr]'">
       <div class="relative min-h-0">
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
-          :min-zoom="0.2"
+          :min-zoom="0.05"
           :max-zoom="2"
           :nodes-draggable="true"
           :nodes-connectable="false"
           :elements-selectable="true"
+          only-render-visible-elements
           @pane-ready="fit"
           @node-click="select($event.node.id)"
+          @node-mouse-enter="hovered = $event.node.id"
+          @node-mouse-leave="hovered = null"
           @pane-click="selected = null"
         >
           <template #node-doc="p"><DocNode :data="p.data" :selected="p.id === selected" /></template>

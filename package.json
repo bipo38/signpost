@@ -19,11 +19,10 @@
     "dev": "vite",
     "dev:api": "node bin/signpost.mjs --root ../olaaaaaaa/comsart --no-open",
     "build": "vue-tsc --noEmit && vite build",
-    "test": "node --test server/*.test.mjs",
+    "test": "node --test server/*.test.mjs src/*.test.ts",
     "prepare": "vue-tsc --noEmit && vite build"
   },
   "devDependencies": {
-    "@dagrejs/dagre": "^3.1.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.0",
     "@vitejs/plugin-vue": "^6.0.8",

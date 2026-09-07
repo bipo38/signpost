@@ -2,7 +2,7 @@
 import { Handle, Position } from '@vue-flow/core'
 
 defineProps<{
-  data: { path: string; title: string; entry: boolean; inbound: number; outbound: number }
+  data: { path: string; title: string; entry: boolean; inbound: number; outbound: number; color: string }
   selected: boolean
 }>()
 
@@ -12,7 +12,8 @@ const nameOf = (p: string) => p.split('/').pop()
 
 <template>
   <div
-    class="relative w-[220px] h-[64px] rounded-md border bg-card px-3.5 py-2.5 text-left transition-[border-color,box-shadow] duration-150 ease-out hover:border-muted-foreground/40"
+    class="relative w-[220px] h-[64px] rounded-md border border-l-[3px] bg-card px-3.5 py-2.5 text-left transition-[border-color,box-shadow] duration-150 ease-out hover:border-muted-foreground/40"
+    :style="{ borderLeftColor: data.color }"
     :class="[selected && 'selected border-accent-orange/70 shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent-orange)_18%,transparent)]', data.entry && 'border-foreground/25']"
   >
     <span class="corner corner-tl" /><span class="corner corner-tr" />

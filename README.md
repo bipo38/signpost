@@ -56,7 +56,8 @@ Nothing is written until you press **create doc**.
 ## Using the graph
 
 - **Read.** Click a card to render the doc on the right. Backticked paths inside it are links to the other cards.
-- **Arrange.** Drag cards freely. **reorder** puts them back in the automatic left-to-right layout and refits the view. **rescan** re-reads the files after you edit them outside the tool.
+- **Arrange.** Cards are ranked left to right by link distance from the entry doc, clustered by folder, and tinted per folder. Drag them freely. **reorder** puts them back and refits the view. **rescan** re-reads the files after you edit them outside the tool.
+- **Dense graphs.** Above 250 links, edges are drawn only for the hovered or selected doc, so a few hundred docs stay readable and load instantly.
 - **Panel.** The icon at the far right of the header hides or shows the side panel. Selecting a card or pressing **new doc** opens it again.
 - **Theme.** **light** / **dark** follows your system by default and remembers your choice in the browser.
 
@@ -68,7 +69,7 @@ Nothing is written until you press **create doc**.
 |-------|--------------|
 | **path** | Where the file goes, relative to the root. Must be `folder/name.md`, no `..`. Defaults to `<docs>/<uploaded name>` when you drop a file. |
 | **situation** | Becomes a row in the entry file's first table: `` | situation | `path` | ``. |
-| **link from** | The entry file gets that table row. Any other parent gets a `See also \`path\` — situation.` line appended. |
+| **link from** | Collapsed list with a filter. The entry file gets that table row. Any other parent gets a `See also \`path\` — situation.` line appended. |
 | **links to** | Appended to the new doc as `Related: \`a\`, \`b\`.` so its outgoing edges show up immediately. |
 | **return row** | Offered for any doc with a `| Came from | Return to |` table. Adds a row above the `Any other doc` fallback, or at the end of the table. |
 | **body** | Paste, drop a `.md`, or upload. Empty means a template naming the caller and the plan-mode pointer. |
@@ -86,7 +87,7 @@ pnpm test             # node:test on server/graph.mjs
 pnpm build            # dist/ served by the bin
 ```
 
-Stack: Node `http` server, Vue 3, Vue Flow with dagre layout, Tailwind 4, marked. Styling tokens are shared with [portfolio-2025](https://github.com/bipo38).
+Stack: Node `http` server, Vue 3, Vue Flow with a hand-rolled rank layout (`src/layout.ts`, tested), Tailwind 4, marked. Styling tokens are shared with [portfolio-2025](https://github.com/bipo38).
 
 ## License
 
