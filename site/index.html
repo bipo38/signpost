@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>signpost — a graph of the docs behind your CLAUDE.md</title>
+<meta name="description" content="Visualize the context-pointer docs behind a CLAUDE.md / AGENTS.md file as a graph, and add new docs already wired into it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ---- tokens (src/assets/main.css) ---- */
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.9848 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.5498 0.1683 34.74);
+  --primary-foreground: oklch(0.985 0.005 34.74);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --border: oklch(0.929 0.013 255.508);
+  --accent-orange: oklch(0.6776 0.1913 34.74);
+  --accent-success: oklch(0.6371 0.1749 146.7);
+  --dot: rgba(22,22,23,.15);
+  --font-geist: 'Geist','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono: 'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-display: 'Instrument Serif',ui-serif,Georgia,serif;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--background); color: var(--foreground);
+  font-family: var(--font-geist); font-size: 15px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased; font-feature-settings: 'kern' 1,'liga' 1,'calt' 1,'ss01' 1;
+}
+a { color: inherit; }
+code, pre, kbd { font-family: var(--font-mono); }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+
+.brand { font-family: var(--font-display); font-size: 22px; line-height: 1; letter-spacing: -0.01em; }
+.copy {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--card);
+  font-size: 12px; color: var(--muted-foreground); transition: color 150ms ease-out, border-color 150ms ease-out, transform 120ms ease-out;
+}
+.copy:hover { color: var(--foreground); border-color: var(--muted-foreground); }
+.copy:active { transform: scale(0.97); }
+.copy[data-done] { color: var(--accent-success); border-color: var(--accent-success); }
+.cmd {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card);
+  font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto;
+}
+.cmd .p { color: var(--muted-foreground); user-select: none; margin-right: 8px; }
+.cmd .hl { color: var(--primary); }
+.dim { color: var(--muted-foreground); }
+.btn {
+  display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 8px; border: 0;
+  background: var(--primary); color: var(--primary-foreground); font-size: 13.5px; font-weight: 500; text-decoration: none;
+  transition: filter 150ms ease-out, transform 120ms ease-out;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: scale(0.98); }
+.btn.ghost { background: transparent; color: var(--foreground); border: 1px solid var(--border); }
+.btn.ghost:hover { filter: none; border-color: var(--muted-foreground); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted-foreground); font-weight: 500; font-size: 12.5px; }
+td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-radius: 4px; }
+.footer { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted-foreground); }
+.footer a { text-underline-offset: 3px; }
+
+/* ================= V3 LIVE GRAPH ================= */
+.v3 { display: flex; flex-direction: column; min-height: 100vh; }
+.v3 header { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--card); }
+.v3 header .meta { font-size: 13px; color: var(--muted-foreground); }
+.v3 header .meta b { font-weight: 500; color: var(--foreground); }
+.v3 header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; color: var(--muted-foreground); align-items: center; }
+.v3 header nav a { text-decoration: none; }
+.v3 header nav a:hover { color: var(--foreground); }
+.v3 .canvasrow { display: grid; grid-template-columns: 1fr 380px; flex: 1; min-height: 560px; }
+@media (max-width: 900px) { .v3 .canvasrow { grid-template-columns: 1fr; } .v3 .panel { border-left: 0; border-top: 1px solid var(--border); } }
+.v3 .canvas {
+  position: relative; overflow: hidden;
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px); background-size: 20px 20px; background-position: 10px 10px;
+}
+.v3 .plot { position: absolute; inset: 0; margin: auto; aspect-ratio: 880 / 470; max-width: 100%; max-height: 100%; }
+.v3 .plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.v3 .edge { fill: none; stroke: var(--muted-foreground); stroke-opacity: .45; stroke-width: 1.25; transition: stroke-opacity 150ms ease-out, stroke 150ms ease-out; }
+.v3 .edge.draw { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw 700ms var(--ease-out) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.v3 .canvas[data-hover] .edge { stroke-opacity: .1; }
+.v3 .canvas[data-hover] .edge.lit { stroke: var(--accent-orange); stroke-opacity: .95; }
+.v3 .elabel { font-family: var(--font-geist); font-size: 10px; fill: var(--muted-foreground); }
+.v3 .node {
+  position: absolute; width: 17.05%; padding: 8px 10px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--card);
+  font-size: 11.5px; line-height: 1.3; cursor: pointer; text-align: left;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms var(--ease-out);
+  animation: pop 320ms var(--ease-out) both;
+}
+@keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+.v3 .node:hover { border-color: var(--muted-foreground); }
+.v3 .node.selected { border-color: var(--accent-orange); }
+.v3 .node .corner { position: absolute; width: 5px; height: 5px; border-radius: 999px; background: var(--dot); transition: background 160ms ease-out; }
+.v3 .node.selected .corner { background: var(--accent-orange); }
+.corner-tl { top: -3px; left: -3px; } .corner-tr { top: -3px; right: -3px; } .corner-bl { bottom: -3px; left: -3px; } .corner-br { bottom: -3px; right: -3px; }
+.v3 .node .name { font-weight: 500; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.v3 .node .tag { font-size: 8.5px; font-weight: 600; letter-spacing: .06em; padding: 2px 5px; border-radius: 999px; background: var(--foreground); color: var(--background); }
+.v3 .node .sub { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: 10px; margin-top: 3px; }
+.v3 .node .sub .io { display: flex; gap: 5px; }
+.v3 .node .sub .in { color: var(--accent-success); } .v3 .node .sub .out { color: var(--primary); }
+.v3 .canvas .hint { position: absolute; left: 24px; bottom: 20px; font-size: 12px; color: var(--muted-foreground); }
+.v3 .panel { border-left: 1px solid var(--border); background: var(--card); padding: 28px 28px 32px; display: flex; flex-direction: column; }
+.v3 .panel .path { font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); margin-bottom: 14px; display: flex; justify-content: space-between; }
+.v3 .panel h2 { font-family: var(--font-display); font-size: 28px; font-weight: 400; margin: 0 0 14px; line-height: 1.1; }
+.v3 .panel p { font-size: 13.5px; margin: 0 0 10px; }
+.v3 .panel p code, .v3 .panel li code { font-size: 12px; background: var(--muted); padding: 1px 5px; border-radius: 4px; color: var(--primary); cursor: pointer; }
+.v3 .panel ul { font-size: 13.5px; padding-left: 20px; margin: 0 0 10px; }
+.v3 .panel .related { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted-foreground); }
+.v3 .panel .related code { color: var(--primary); cursor: pointer; }
+.v3 .below { max-width: 1040px; margin: 0 auto; padding: 72px 24px 140px; width: 100%; }
+.v3 .below h1 { font-family: var(--font-display); font-size: 40px; font-weight: 400; line-height: 1.1; margin: 0 0 16px; max-width: 24ch; }
+.v3 .below .lede { color: var(--muted-foreground); font-size: 16px; max-width: 60ch; margin: 0 0 28px; }
+.v3 .below .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 56px; }
+@media (max-width: 760px) { .v3 .below .cols { grid-template-columns: 1fr; } }
+.v3 .below h3 { font-size: 13px; text-transform: lowercase; letter-spacing: .02em; color: var(--muted-foreground); font-weight: 500; margin: 0 0 10px; }
+.v3 .below .footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+@media (prefers-reduced-motion: reduce) {
+  .v3 .node, .v3 .edge.draw { animation: none !important; }
+  .v3 .edge.draw { stroke-dashoffset: 0; }
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const GH = 'https://github.com/bipo38/signpost';
+const INSTALL = 'pnpm add -D @brotzi/signpost';
+const NPX = 'npx @brotzi/signpost';
+
+const copyBtn = (text, label = 'copy') =>
+  `<button class="copy" data-copy="${text.replace(/"/g, '&quot;')}">${label}</button>`;
+
+const footer = `<div class="footer">
+  <span>MIT · Asier Gilaber</span>
+  <a href="${GH}">github</a>
+  <a href="https://www.npmjs.com/package/@brotzi/signpost">npm</a>
+  <a href="${GH}/issues">issues</a>
+</div>`;
+
+/* ---------- V3 LIVE GRAPH ---------- */
+const NODES = [
+  { id: 'CLAUDE.md', dir: '/', x: 40,  y: 240, entry: true, title: 'Repo instructions',
+    body: `<p>Read this first, then follow the pointer for your situation.</p>
+    <table><tr><th>situation</th><th>open</th></tr>
+    <tr><td>any change</td><td><code>docs/plan.md</code></td></tr>
+    <tr><td>UI exploration</td><td><code>docs/prototype.md</code></td></tr></table>` },
+  { id: 'plan.md', dir: 'docs', x: 260, y: 240, title: 'Develop flow',
+    body: `<p>How to develop anything in this repo <b>except</b> prototype exploration (<code>docs/prototype.md</code>).</p>
+    <ul><li>Always switch to plan mode first. Open <code>docs/plan-mode.md</code>, apply its rules, return here.</li>
+    <li>Then apply the needed testing: <code>docs/testing/ui.md</code>, <code>docs/testing/be-internal.md</code>, <code>docs/testing/fe-internal.md</code>.</li></ul>` },
+  { id: 'prototype.md', dir: 'docs', x: 260, y: 110, title: 'Prototype exploration',
+    body: `<p>Divergent UI variants behind a picker. Check <code>PRODUCT.md</code> for tone before designing.</p><p>Plan first: <code>docs/plan-mode.md</code>.</p>` },
+  { id: 'PRODUCT.md', dir: '/', x: 480, y: 40, title: 'Product',
+    body: `<p>Who this is for, what it must never do, and the words we use in the UI.</p>` },
+  { id: 'plan-mode.md', dir: 'docs', x: 480, y: 180, title: 'Plan mode',
+    body: `<p>Rules for planning before touching code. When done, return to the caller.</p>
+    <table><tr><th>Came from</th><th>Return to</th></tr><tr><td><code>docs/plan.md</code></td><td>the plan step</td></tr><tr><td>Any other doc</td><td>that doc</td></tr></table>` },
+  { id: 'ui.md', dir: 'docs/testing', x: 700, y: 140, title: 'Manual UI testing',
+    body: `<p>Open the app, walk the flow, screenshot each state.</p>` },
+  { id: 'be-internal.md', dir: 'docs/testing', x: 700, y: 260, title: 'Backend tests',
+    body: `<p>Run <code>pnpm test</code>. Add a case for every branch you touched.</p>` },
+  { id: 'fe-internal.md', dir: 'docs/testing', x: 700, y: 380, title: 'Playwright smoke',
+    body: `<p>One happy-path spec per screen. No fixtures beyond the seed.</p>` },
+];
+const EDGES = [
+  ['CLAUDE.md','plan.md',2], ['CLAUDE.md','prototype.md',1],
+  ['plan.md','plan-mode.md',3], ['plan.md','prototype.md',1], ['plan.md','ui.md',1], ['plan.md','be-internal.md',1], ['plan.md','fe-internal.md',1],
+  ['prototype.md','PRODUCT.md',1], ['prototype.md','plan-mode.md',2], ['plan-mode.md','plan.md',1],
+];
+const NW = 150, NH = 44;
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+const fullPath = n => n.dir === '/' ? n.id : `${n.dir}/${n.id}`;
+const inout = id => [EDGES.filter(e => e[1] === id).length, EDGES.filter(e => e[0] === id).length];
+
+function edgePath(a, b) {
+  const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = b.x, y2 = b.y + NH / 2;
+  const back = x2 < x1;
+  if (back) { // loop under
+    const dip = Math.max(y1, y2) + 46;
+    return { d: `M${x1 - NW/2},${y1 + NH/2} C${x1 - NW/2},${dip} ${x2 + NW/2},${dip} ${x2 + NW/2},${y2 + NH/2}`, lx: (x1 + x2) / 2, ly: dip - 4 };
+  }
+  const cx = (x1 + x2) / 2;
+  return { d: `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`, lx: cx, ly: (y1 + y2) / 2 - 5 };
+}
+
+const v3 = () => `<div class="v3">
+  <header>
+    <span class="brand">signpost</span>
+    <span class="meta"><b>your-repo</b> · CLAUDE.md · 8 docs · 12 links</span>
+    <nav><a href="#about">about</a><a href="${GH}">github</a><a class="btn" style="height:32px;font-size:12.5px" href="${GH}#install">install</a></nav>
+  </header>
+  <div class="canvasrow">
+    <div class="canvas" id="g-canvas">
+      <div class="plot"><svg viewBox="0 0 880 470" aria-hidden="true">
+        <defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.5 L7,4 L0,7.5" fill="none" stroke="context-stroke" stroke-width="1.25"/></marker></defs>
+        ${EDGES.map(([f, t, n], i) => { const p = edgePath(byId[f], byId[t]); return `
+          <path class="edge draw" data-from="${f}" data-to="${t}" d="${p.d}" marker-end="url(#arr)" style="animation-delay:${80 + i * 40}ms"/>
+          ${n > 1 ? `<text class="elabel" x="${p.lx}" y="${p.ly}" text-anchor="middle">${n}</text>` : ''}`; }).join('')}
+      </svg>
+      ${NODES.map((n, i) => { const [ins, outs] = inout(n.id); return `
+        <button class="node" data-id="${n.id}" style="left:${n.x / 880 * 100}%;top:${n.y / 470 * 100}%;animation-delay:${i * 30}ms">
+          <span class="corner corner-tl"></span><span class="corner corner-tr"></span><span class="corner corner-bl"></span><span class="corner corner-br"></span>
+          <span class="name">${n.id}${n.entry ? '<span class="tag">ENTRY</span>' : ''}</span>
+          <span class="sub"><span>${n.dir}</span><span class="io"><span class="in">↓${ins}</span><span class="out">↑${outs}</span></span></span>
+        </button>`; }).join('')}
+      </div>
+      <div class="hint">hover a card to light its links · click to read it</div>
+    </div>
+    <aside class="panel" id="g-panel"></aside>
+  </div>
+
+  <div class="below" id="about">
+    <h1>Your CLAUDE.md is a graph. Signpost draws it.</h1>
+    <p class="lede">The demo above is the real UI on a sample repo. Point it at yours: it reads the entry file, every markdown doc under <code>docs/</code>, and every path they mention. Nothing is written until you press create.</p>
+    <div class="cmd" style="max-width:520px"><span><span class="p">$</span>${NPX}</span>${copyBtn(NPX)}</div>
+    <div class="cols">
+      <div><h3>reads</h3><p class="dim" style="margin:0;font-size:14px">Backticked paths like <code>docs/plan.md</code> and markdown links become arrows. A number on an edge is how many times the doc is mentioned.</p></div>
+      <div><h3>writes</h3><p class="dim" style="margin:0;font-size:14px">New doc creates the file, adds a row to the entry table, a <code>See also</code> line in each parent, and a <code>Related:</code> line in the new doc.</p></div>
+      <div><h3>scales</h3><p class="dim" style="margin:0;font-size:14px">Instant rank layout, folder tints, and a dense mode above 250 links so a few hundred docs load in a blink.</p></div>
+      <div><h3>stays home</h3><p class="dim" style="margin:0;font-size:14px">Zero runtime dependencies, Node 20+, binds to <code>127.0.0.1</code>. Works in any repo that has markdown.</p></div>
+    </div>
+    ${footer}
+  </div>
+</div>`;
+
+function wireV3() {
+  const canvas = document.getElementById('g-canvas'); if (!canvas) return;
+  const panel = document.getElementById('g-panel');
+  const edges = [...canvas.querySelectorAll('.edge')];
+  const nodes = [...canvas.querySelectorAll('.node')];
+  const select = id => {
+    const n = byId[id]; if (!n) return;
+    nodes.forEach(el => el.classList.toggle('selected', el.dataset.id === id));
+    const outs = EDGES.filter(e => e[0] === id).map(e => fullPath(byId[e[1]]));
+    panel.innerHTML = `<div class="path"><span>${fullPath(n)}</span><span>${n.entry ? 'entry' : ''}</span></div>
+      <h2>${n.title}</h2>${n.body}
+      <div class="related">${outs.length ? 'links to ' + outs.map(p => `<code data-go="${p.split('/').pop()}">${p}</code>`).join(', ') : 'links to nothing'}</div>`;
+  };
+  nodes.forEach(el => {
+    el.addEventListener('click', () => select(el.dataset.id));
+    el.addEventListener('mouseenter', () => { canvas.setAttribute('data-hover', ''); edges.forEach(e => e.classList.toggle('lit', e.dataset.from === el.dataset.id || e.dataset.to === el.dataset.id)); });
+    el.addEventListener('mouseleave', () => { canvas.removeAttribute('data-hover'); edges.forEach(e => e.classList.remove('lit')); });
+  });
+  panel.addEventListener('click', e => {
+    const c = e.target.closest('code'); if (!c) return;
+    const id = c.dataset.go || c.textContent.split('/').pop();
+    if (byId[id]) select(id);
+  });
+  select('plan.md');
+}
+
+/* copy buttons */
+document.addEventListener('click', async e => {
+  const b = e.target.closest('.copy'); if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); } catch {}
+  b.textContent = 'copied'; b.setAttribute('data-done', '');
+  setTimeout(() => { b.textContent = 'copy'; b.removeAttribute('data-done'); }, 1200);
+});
+
+document.getElementById('app').innerHTML = v3();
+wireV3();
+</script>
+</body>
+</html>
