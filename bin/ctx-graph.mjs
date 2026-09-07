@@ -12,6 +12,7 @@ const { values } = parseArgs({
     help: { type: 'boolean', short: 'h' },
   },
   allowNegative: true,
+  allowPositionals: true, // pnpm forwards a bare "--"
 })
 if (values.help) {
   console.log(`ctx-graph [--root .] [--docs docs] [--port 4747] [--no-open]
