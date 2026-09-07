@@ -20,7 +20,8 @@
     "dev:api": "node bin/ctx-graph.mjs --root ../olaaaaaaa/comsart --no-open",
     "build": "vue-tsc --noEmit && vite build",
     "test": "node --test server/*.test.mjs",
-    "prepack": "pnpm build"
+    "prepack": "pnpm build",
+    "prepare": "pnpm build"
   },
   "devDependencies": {
     "@dagrejs/dagre": "^3.1.1",
@@ -39,5 +40,9 @@
     "vite": "^8.2.2",
     "vue": "^3.5.42",
     "vue-tsc": "^3.3.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bipo38/ctx-graph.git"
   }
 }

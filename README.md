@@ -4,19 +4,42 @@ Visualize the context-pointer docs behind a `CLAUDE.md` / `AGENTS.md` file as a 
 
 Framework agnostic: it only reads markdown. Zero runtime dependencies; the UI ships prebuilt.
 
+## Install
+
+The repo is private and not on npm, so install from GitHub (the `prepare` script builds the UI on install):
+
+```sh
+pnpm add -D github:bipo38/ctx-graph      # in the project whose docs you want to see
+# package.json → "scripts": { "docs:graph": "ctx-graph" }
+pnpm docs:graph
+```
+
+One-off, without adding a dependency:
+
+```sh
+npx github:bipo38/ctx-graph
+```
+
+Local clone linked into a sibling project:
+
+```sh
+git clone git@github.com:bipo38/ctx-graph.git && cd ctx-graph && pnpm install   # builds dist/
+cd ../your-project && pnpm add -D link:../ctx-graph
+```
+
 ## Run
 
 ```sh
-npx ctx-graph                 # from a repo root; opens http://localhost:4747
+ctx-graph                     # from a repo root; opens http://localhost:4747
 ctx-graph --root ../other --docs documentation --port 5000 --no-open
 ```
 
-Or add it to a project:
+## Using it
 
-```sh
-pnpm add -D ctx-graph
-# package.json → "docs:graph": "ctx-graph"
-```
+- **Read.** Click a card to render the doc on the right. Backticked paths inside it are links to the other cards. Arrows go from the doc that references to the doc it references; a number on an edge is how many times.
+- **Arrange.** Drag cards freely. **reorder** puts them back in the automatic left-to-right layout and refits the view. **rescan** re-reads the files after you edit them outside the tool.
+- **Panel.** The icon at the far right of the header hides or shows the side panel; selecting a card or pressing **new doc** opens it again.
+- **Theme.** **light** / **dark** follows your system by default and remembers your choice in the browser.
 
 ## What it reads
 
