@@ -80,7 +80,7 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 header .meta b { font-weight: 500; color: var(--foreground); }
 .v3 header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; color: var(--muted-foreground); align-items: center; }
 .v3 header nav a { text-decoration: none; }
-.v3 header nav a:hover { color: var(--foreground); }
+.v3 header nav a:not(.btn):hover { color: var(--foreground); }
 .v3 .canvasrow { display: grid; grid-template-columns: 1fr 380px; flex: 1; min-height: 560px; }
 @media (max-width: 900px) { .v3 .canvasrow { grid-template-columns: 1fr; } .v3 .panel { border-left: 0; border-top: 1px solid var(--border); } }
 .v3 .canvas {
@@ -147,10 +147,9 @@ const copyBtn = (text, label = 'copy') =>
   `<button class="copy" data-copy="${text.replace(/"/g, '&quot;')}">${label}</button>`;
 
 const footer = `<div class="footer">
-  <span>MIT · Asier Gilaber</span>
+  <span>MIT</span>
   <a href="${GH}">github</a>
   <a href="https://www.npmjs.com/package/@brotzi/signpost">npm</a>
-  <a href="${GH}/issues">issues</a>
 </div>`;
 
 /* ---------- V3 LIVE GRAPH ---------- */
