@@ -1,5 +1,5 @@
 {
-  "name": "@bipo38/signpost",
+  "name": "@brotzi/signpost",
   "version": "0.1.0",
   "description": "Graph of the context-pointer docs behind CLAUDE.md / AGENTS.md, with a form to add new docs already wired in",
   "type": "module",
