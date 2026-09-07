@@ -1,0 +1,43 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { create, insertRow, scan } from './graph.mjs'
+
+function fixture() {
+  const root = mkdtempSync(join(tmpdir(), 'ctx-'))
+  mkdirSync(join(root, 'docs/testing'), { recursive: true })
+  writeFileSync(join(root, 'CLAUDE.md'), '# Repo\n\n| Situation | Open |\n|---|---|\n| Dev | `docs/plan.md` |\n\nRules in `docs/plan-mode.md`.\n')
+  writeFileSync(join(root, 'docs/plan.md'), '# Develop flow\n\nSee `docs/plan-mode.md` and [ui](testing/ui.md).\n')
+  writeFileSync(join(root, 'docs/plan-mode.md'), '# Plan\n\n| Came from | Return to |\n|---|---|\n| `docs/plan.md` | `docs/plan.md` |\n| Any other doc | That doc |\n')
+  writeFileSync(join(root, 'docs/testing/ui.md'), '# UI\n\nBack to `docs/plan.md`.\n')
+  return root
+}
+
+test('scan finds nodes, counts edges, resolves relative links, spots return tables', () => {
+  const g = scan(fixture())
+  assert.equal(g.entry, 'CLAUDE.md')
+  assert.deepEqual(g.nodes.map((n) => n.path).sort(), ['CLAUDE.md', 'docs/plan-mode.md', 'docs/plan.md', 'docs/testing/ui.md'])
+  assert.deepEqual(g.edges.find((e) => e.from === 'docs/plan.md' && e.to === 'docs/testing/ui.md'), { from: 'docs/plan.md', to: 'docs/testing/ui.md', count: 1 })
+  assert.deepEqual(g.returnTables, ['docs/plan-mode.md'])
+  assert.equal(g.nodes.find((n) => n.path === 'docs/plan.md').title, 'Develop flow')
+})
+
+test('insertRow appends after the last table row', () => {
+  assert.equal(insertRow('## X\n\n| a | b |\n|--|--|\n| 1 | 2 |\n\nrest', '| 3 | 4 |').split('\n')[5], '| 3 | 4 |')
+  assert.equal(insertRow('no table', '| x |'), null)
+})
+
+test('create writes the file and wires parents, links and return rows', () => {
+  const root = fixture()
+  create(root, { path: 'docs/testing/perf.md', situation: 'Perf check', parents: ['CLAUDE.md', 'docs/plan.md'], links: ['docs/testing/ui.md'], returnRows: ['docs/plan-mode.md'] })
+  const claude = readFileSync(join(root, 'CLAUDE.md'), 'utf8')
+  assert.match(claude, /\| Dev \| `docs\/plan.md` \|\n\| Perf check \| `docs\/testing\/perf.md` \|\n\nRules/)
+  assert.match(readFileSync(join(root, 'docs/plan.md'), 'utf8'), /See also `docs\/testing\/perf.md` — Perf check\.\n$/)
+  assert.match(readFileSync(join(root, 'docs/plan-mode.md'), 'utf8'), /perf flow\) \|\n\| Any other doc/)
+  assert.match(readFileSync(join(root, 'docs/testing/perf.md'), 'utf8'), /^# Perf\n[\s\S]*Related: `docs\/testing\/ui.md`\.\n$/)
+  assert.throws(() => create(root, { path: 'docs/testing/perf.md', situation: 'x' }), /already exists/)
+  assert.throws(() => create(root, { path: '../evil.md', situation: 'x' }), /path must/)
+  assert.equal(scan(root).edges.filter((e) => e.from === 'docs/testing/perf.md').length, 2)
+})
