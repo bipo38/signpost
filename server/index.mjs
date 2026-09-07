@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { exec } from 'node:child_process'
-import { create, scan } from './graph.mjs'
+import { create, scan, unlink } from './graph.mjs'
 
 const DIST = join(import.meta.dirname, '..', 'dist')
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' }
@@ -32,6 +32,11 @@ export function serve({ root, docs, port, open }) {
           returnRows: f.getAll('returnRows'),
         }, opts)
         return json(201, { path })
+      }
+      if (url.pathname === '/api/unlink' && req.method === 'POST') {
+        const { from, ref } = JSON.parse(await new Response(req).text())
+        if (!scan(root, opts).nodes.some((n) => n.path === from)) return json(404, { error: 'unknown file' })
+        return json(200, { removed: unlink(root, from, ref) })
       }
       // Static UI from dist, SPA fallback to index.html.
       let file = join(DIST, normalize(url.pathname).replace(/^(\.\.[/\\])+/, ''))

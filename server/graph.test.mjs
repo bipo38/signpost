@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { create, insertRow, scan } from './graph.mjs'
+import { create, insertRow, scan, unlink } from './graph.mjs'
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'ctx-'))
@@ -41,4 +41,20 @@ test('create writes the file and wires parents, links and return rows', () => {
   assert.throws(() => create(root, { path: '../evil.md', situation: 'x' }), /path must/)
   assert.throws(() => create(root, { path: 'docs/x.md', situation: 'x', parents: ['../../etc/motd'] }), /not a doc in this graph/)
   assert.equal(scan(root).edges.filter((e) => e.from === 'docs/testing/perf.md').length, 2)
+})
+
+test('scan lists references to missing docs and unlink cleans the safe ones', () => {
+  const root = fixture()
+  writeFileSync(join(root, 'docs/plan.md'), '# Develop flow\n\nSee `docs/plan-mode.md` and [ui](testing/ui.md).\n\nOpen `docs/gone.md` when stuck.\n\nSee also `docs/gone.md` — old.\n\nRelated: `docs/gone.md`, `docs/plan-mode.md`.\n')
+  writeFileSync(join(root, 'CLAUDE.md'), '# Repo\n\n| Situation | Open |\n|---|---|\n| Dev | `docs/plan.md` |\n| Old | `docs/gone.md` |\n')
+  const g = scan(root)
+  assert.deepEqual(g.broken.map((b) => [b.from, b.line, b.fixable]), [['CLAUDE.md', 6, true], ['docs/plan.md', 5, false], ['docs/plan.md', 7, true], ['docs/plan.md', 9, true]])
+  assert.equal(unlink(root, 'CLAUDE.md', 'docs/gone.md'), 1)
+  assert.equal(unlink(root, 'docs/plan.md', 'docs/gone.md'), 2)
+  const plan = readFileSync(join(root, 'docs/plan.md'), 'utf8')
+  assert.match(plan, /Open `docs\/gone.md` when stuck/, 'prose is left for a human')
+  assert.doesNotMatch(plan, /See also/)
+  assert.match(plan, /Related: `docs\/plan-mode.md`\.\n$/)
+  assert.doesNotMatch(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), /gone/)
+  assert.equal(scan(root).broken.length, 1)
 })

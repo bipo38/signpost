@@ -82,6 +82,7 @@ Related: `{{ docs }}/testing/ui.md`.</pre>
             <li>Drag cards anywhere. <strong>reorder</strong> puts them back: ranked left to right by distance from the entry, grouped by folder.</li>
             <li>On dense graphs, arrows are drawn only for the card under the cursor or the selected one. Hover to explore.</li>
             <li>Scroll to zoom, drag the background to pan, the corner buttons refit.</li>
+            <li>When a doc is deleted or renamed, <strong>rescan</strong> lists every reference to it as a <em>broken link</em> in the header. Table rows, <em>See also</em> and <em>Related</em> entries can be removed with one click; references inside prose are shown for you to edit.</li>
           </ul>
         </div>
       </section>

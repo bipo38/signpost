@@ -25,20 +25,55 @@ export function scan(root, { docs = 'docs', ignore = ['guide', 'node_modules'] }
     for (const f of readdirSync(join(root, docs), { recursive: true }))
       if (f.endsWith('.md') && !ignore.some((i) => f.split('/').includes(i))) nodes.add(`${docs}/${f}`)
   const edges = new Map()
-  for (const from of [...nodes])
-    for (const m of readFileSync(join(root, from), 'utf8').matchAll(LINK)) {
-      const to = resolveRef(root, from, m[1] ?? m[2])
-      if (!to || to === from) continue
-      nodes.add(to)
-      edges.set(`${from}|${to}`, (edges.get(`${from}|${to}`) ?? 0) + 1)
-    }
+  const broken = [] // references to .md files that do not exist (deleted or renamed)
+  for (const from of [...nodes]) {
+    const lines = readFileSync(join(root, from), 'utf8').split('\n')
+    lines.forEach((text, i) => {
+      for (const m of text.matchAll(LINK)) {
+        const ref = m[1] ?? m[2]
+        const to = resolveRef(root, from, ref)
+        if (!to) {
+          if (!broken.some((b) => b.from === from && b.line === i + 1 && b.ref === ref)) broken.push({ from, ref, line: i + 1, text: text.trim(), fixable: FIXABLE.test(text) })
+          continue
+        }
+        if (to === from) continue
+        nodes.add(to)
+        edges.set(`${from}|${to}`, (edges.get(`${from}|${to}`) ?? 0) + 1)
+      }
+    })
+  }
   const returnTables = [...nodes].filter((n) => /^\| *Came from/m.test(readFileSync(join(root, n), 'utf8')))
   return {
     root, entry, docs,
     nodes: [...nodes].map((path) => ({ path, title: titleOf(readFileSync(join(root, path), 'utf8')) ?? path })),
     edges: [...edges].map(([k, count]) => { const [from, to] = k.split('|'); return { from, to, count } }),
     returnTables,
+    broken,
   }
+}
+
+// Lines Signpost knows how to clean without touching prose: table rows, "See also" lines, "Related:" lists.
+const FIXABLE = /^\s*(\||See also\b|Related:)/
+
+// Remove every fixable reference to `ref` in `from`. Table rows and "See also" lines are dropped;
+// in a "Related:" list only that entry goes, the line goes when the list is empty. Prose is left alone.
+export function unlink(root, from, ref) {
+  const file = join(root, from)
+  const lines = readFileSync(file, 'utf8').split('\n')
+  let removed = 0
+  const out = []
+  for (const line of lines) {
+    if (!line.includes(ref) || !FIXABLE.test(line)) { out.push(line); continue }
+    if (/^\s*Related:/.test(line)) {
+      const rest = line.replace(/^\s*Related:\s*/, '').replace(/\.\s*$/, '').split(/,\s*/).filter((e) => !e.includes(ref))
+      removed++
+      if (rest.length) out.push(`Related: ${rest.join(', ')}.`)
+      continue
+    }
+    removed++ // table row or See also line: drop it
+  }
+  if (removed) writeFileSync(file, out.join('\n').replace(/\n{3,}/g, '\n\n'))
+  return removed
 }
 
 const titleOf = (text) => text.match(/^# (.+)$/m)?.[1]

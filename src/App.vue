@@ -15,7 +15,7 @@ const nodes = shallowRef<FlowNode[]>([])
 const edges = shallowRef<FlowEdge[]>([])
 const selected = ref<string | null>(null)
 const content = ref('')
-const mode = ref<'view' | 'create'>('view')
+const mode = ref<'view' | 'create' | 'broken'>('view')
 const hovered = ref<string | null>(null)
 // Dense graphs draw only the edges touching the selected or hovered doc; everything else would be a wall of lines.
 const dense = computed(() => (graph.value?.edges.length ?? 0) > DENSE_EDGES)
@@ -64,6 +64,7 @@ async function load(focus?: string) {
     graph.value = await api.graph()
     loadError.value = ''
     if (focus) select(focus)
+    if (mode.value === 'broken' && !graph.value.broken.length) mode.value = 'view'
     reorder()
   } catch (e) {
     loadError.value = (e as Error).message
@@ -118,6 +119,12 @@ onMounted(() => {
 })
 
 const rootName = computed(() => graph.value?.root.split('/').pop())
+
+async function unlink(from: string, ref: string) {
+  await api.unlink(from, ref)
+  await load()
+  if (graph.value?.broken.length) mode.value = 'broken'
+}
 const info = ref<InstanceType<typeof InfoDialog> | null>(null)
 </script>
 
@@ -129,6 +136,9 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
         <span v-if="graph" class="text-[12.5px] text-muted-foreground">
           <span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links
           <span v-if="dense" class="ml-2 rounded-sm bg-muted px-1.5 py-px text-[11px]">dense · links shown for the hovered or selected doc</span>
+          <button v-if="graph.broken.length" class="ml-2 rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
+            {{ graph.broken.length }} broken {{ graph.broken.length === 1 ? 'link' : 'links' }}
+          </button>
         </span>
       </div>
       <div class="flex items-center gap-1.5">
@@ -172,6 +182,24 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
         <template v-if="mode === 'create' && graph">
           <h2 class="mb-4 font-display text-[24px] leading-none">new doc</h2>
           <NewDocForm :graph="graph" @created="load($event)" @cancel="mode = 'view'" />
+        </template>
+        <template v-else-if="mode === 'broken' && graph">
+          <div class="mb-4 flex items-center justify-between gap-2">
+            <h2 class="font-display text-[24px] leading-none">broken links</h2>
+            <button class="text-[11px] text-muted-foreground hover:text-foreground" @click="mode = 'view'">close</button>
+          </div>
+          <p class="mb-4 text-[12.5px] text-muted-foreground">References to docs that no longer exist. Table rows, "See also" and "Related" entries can be removed here; prose needs a human edit, open the doc.</p>
+          <ul class="space-y-3">
+            <li v-for="b in graph.broken" :key="`${b.from}:${b.line}:${b.ref}`" class="rounded-md border bg-card px-3 py-2.5 text-[12.5px]">
+              <div class="flex items-center justify-between gap-2">
+                <button class="truncate text-left font-medium hover:underline underline-offset-3" @click="select(b.from)">{{ b.from }}<span class="font-normal text-muted-foreground">:{{ b.line }}</span></button>
+                <button v-if="b.fixable" class="shrink-0 rounded-sm border px-2 py-0.5 text-[11px] text-destructive hover:bg-destructive/10" @click="unlink(b.from, b.ref)">remove</button>
+                <span v-else class="shrink-0 text-[11px] text-muted-foreground">prose</span>
+              </div>
+              <div class="mt-1 text-[11px] text-muted-foreground">missing <code class="rounded bg-muted px-1">{{ b.ref }}</code></div>
+              <pre class="mt-1.5 truncate rounded bg-muted px-2 py-1 text-[11px]">{{ b.text }}</pre>
+            </li>
+          </ul>
         </template>
         <template v-else-if="selected">
           <div class="mb-4 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
