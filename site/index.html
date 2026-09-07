@@ -156,7 +156,7 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .linked .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 4px; vertical-align: middle; }
 .v3 .linked .legend .x { margin-left: 4px; font-size: 10px; }
 .v3 .below { max-width: 1040px; margin: 0 auto; padding: 72px 24px 140px; width: 100%; }
-.v3 .below h1 { font-family: var(--font-display); font-size: 40px; font-weight: 400; line-height: 1.1; margin: 0 0 16px; max-width: 24ch; }
+.v3 .below h1 { font-family: var(--font-display); font-size: clamp(28px, 4.1vw, 44px); font-weight: 400; line-height: 1.08; margin: 0 0 16px; letter-spacing: -0.01em; }
 .v3 .below .lede { color: var(--muted-foreground); font-size: 16px; max-width: 60ch; margin: 0 0 28px; }
 .v3 .below .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 40px; margin-top: 56px; }
 .v3 .below h3 { font-size: 13px; text-transform: lowercase; letter-spacing: .02em; color: var(--muted-foreground); font-weight: 500; margin: 0 0 10px; }
@@ -299,7 +299,7 @@ const v3 = () => `<div class="v3">
   </div>
 
   <div class="below" id="about">
-    <h1>Your CLAUDE.md or AGENTS.md is a graph. Signpost draws it.</h1>
+    <h1>Your CLAUDE.md or AGENTS.md is a graph.<br>Signpost draws it.</h1>
     <p class="lede">Point it at your repo: it starts from <code>CLAUDE.md</code>, or <code>AGENTS.md</code> when that is what you have, then reads every markdown doc under <code>docs/</code> and every path they mention. Nothing is written until you press create.</p>
     <div class="cmd" style="max-width:520px"><span><span class="p">$</span>${NPX}</span>${copyBtn(NPX)}</div>
     <div class="cols">
