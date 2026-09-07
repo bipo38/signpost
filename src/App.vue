@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue'
 import { VueFlow, useVueFlow, type Edge as FlowEdge, type Node as FlowNode } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -15,6 +15,12 @@ const edges = shallowRef<FlowEdge[]>([])
 const selected = ref<string | null>(null)
 const content = ref('')
 const mode = ref<'view' | 'create'>('view')
+const panelOpen = ref(true)
+const fit = () => fitView({ padding: 0.06, duration: 300 })
+function togglePanel(open = !panelOpen.value) {
+  panelOpen.value = open
+  nextTick(fit)
+}
 const loadError = ref('')
 const { fitView } = useVueFlow()
 
@@ -25,7 +31,7 @@ function reorder() {
   nodes.value = f.nodes
   edges.value = f.edges
   highlight(selected.value)
-  requestAnimationFrame(() => fitView({ padding: 0.15, duration: 300 }))
+  requestAnimationFrame(fit)
 }
 
 async function load(focus?: string) {
@@ -42,6 +48,7 @@ async function load(focus?: string) {
 async function select(path: string) {
   selected.value = path
   mode.value = 'view'
+  panelOpen.value = true
   content.value = (await api.file(path)).content
 }
 
@@ -94,11 +101,14 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="load(selected ?? undefined)">rescan</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="Reset positions to the automatic layout" @click="reorder">reorder</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :aria-pressed="dark" @click="setDark(!dark)">{{ dark ? 'light' : 'dark' }}</button>
-        <button class="ml-1 h-8 rounded-md bg-primary px-3 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90" @click="mode = 'create'; selected = null">new doc</button>
+        <button class="ml-1 h-8 rounded-md bg-primary px-3 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90" @click="mode = 'create'; selected = null; panelOpen = true">new doc</button>
+        <button class="h-8 w-8 rounded-md text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :title="panelOpen ? 'Hide panel' : 'Show panel'" :aria-pressed="panelOpen" @click="togglePanel()">
+          <svg viewBox="0 0 16 16" class="mx-auto size-4" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="1.5" y="2.5" width="13" height="11" rx="2" /><path d="M10 2.5v11" /><path v-if="panelOpen" d="M10 8h4.5" class="stroke-accent-orange" stroke-width="2" /></svg>
+        </button>
       </div>
     </header>
 
-    <div class="grid min-h-0 grid-cols-[1fr_360px]">
+    <div class="grid min-h-0" :class="panelOpen ? 'grid-cols-[1fr_360px]' : 'grid-cols-[1fr]'">
       <div class="relative min-h-0">
         <VueFlow
           v-model:nodes="nodes"
@@ -119,7 +129,7 @@ const rootName = computed(() => graph.value?.root.split('/').pop())
         <p v-if="loadError" class="absolute inset-x-0 top-4 mx-auto w-max rounded-md border border-destructive/40 bg-card px-3 py-2 text-[12.5px] text-destructive">{{ loadError }}</p>
       </div>
 
-      <aside class="min-h-0 overflow-y-auto border-l bg-card/60 px-6 py-5">
+      <aside v-if="panelOpen" class="min-h-0 overflow-y-auto border-l bg-card/60 px-6 py-5">
         <template v-if="mode === 'create' && graph">
           <h2 class="mb-4 font-display text-[24px] leading-none">new doc</h2>
           <NewDocForm :graph="graph" @created="load($event)" @cancel="mode = 'view'" />
