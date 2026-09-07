@@ -134,8 +134,7 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .below { max-width: 1040px; margin: 0 auto; padding: 72px 24px 140px; width: 100%; }
 .v3 .below h1 { font-family: var(--font-display); font-size: 40px; font-weight: 400; line-height: 1.1; margin: 0 0 16px; max-width: 24ch; }
 .v3 .below .lede { color: var(--muted-foreground); font-size: 16px; max-width: 60ch; margin: 0 0 28px; }
-.v3 .below .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 56px; }
-@media (max-width: 760px) { .v3 .below .cols { grid-template-columns: 1fr; } }
+.v3 .below .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 40px; margin-top: 56px; }
 .v3 .below h3 { font-size: 13px; text-transform: lowercase; letter-spacing: .02em; color: var(--muted-foreground); font-weight: 500; margin: 0 0 10px; }
 .v3 .below .footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--border); }
 
@@ -276,6 +275,7 @@ const v3 = () => `<div class="v3">
     <div class="cmd" style="max-width:520px"><span><span class="p">$</span>${NPX}</span>${copyBtn(NPX)}</div>
     <div class="cols">
       <div><h3>reads</h3><p class="dim" style="margin:0;font-size:14px">Backticked paths like <code>docs/plan.md</code> and markdown links become arrows. A number on an edge is how many times the doc is mentioned.</p></div>
+      <div><h3>fixes</h3><p class="dim" style="margin:0;font-size:14px">Broken pointers get their own list. Each one shows the reference as a diff, and one click points it at another doc or removes it.</p></div>
       <div><h3>writes</h3><p class="dim" style="margin:0;font-size:14px">New doc creates the file, adds a row to the entry table, a <code>See also</code> line in each parent, and a <code>Related:</code> line in the new doc.</p></div>
       <div><h3>scales</h3><p class="dim" style="margin:0;font-size:14px">Instant rank layout, folder tints, and a dense mode above 250 links so a few hundred docs load in a blink.</p></div>
       <div><h3>stays home</h3><p class="dim" style="margin:0;font-size:14px">Zero runtime dependencies, Node 20+, binds to <code>127.0.0.1</code>. Works in any repo that has markdown.</p></div>
