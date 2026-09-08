@@ -161,18 +161,19 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
 
 <template>
   <div class="grid h-full grid-rows-[auto_1fr]">
-    <header class="flex items-center justify-between border-b px-5 py-3">
-      <div class="flex items-baseline gap-3">
-        <h1 class="font-display text-[22px] leading-none">signpost</h1>
-        <span v-if="graph" class="text-[12.5px] text-muted-foreground">
-          <span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links
-          <span v-if="dense" class="ml-2 rounded-sm bg-muted px-1.5 py-px text-[11px]">dense · links shown for the hovered or selected doc</span>
-          <button v-if="SHOW_BROKEN && graph.broken.length" class="ml-2 rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
+    <!-- Narrow windows: the stats truncate before anything wraps; below 640px they drop to their own row under the actions. -->
+    <header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-b px-5 py-3">
+      <div class="flex min-w-0 flex-1 items-center gap-3 max-sm:order-none">
+        <h1 class="shrink-0 font-display text-[22px] leading-none">signpost</h1>
+        <span v-if="graph" class="flex min-w-0 items-center gap-2 text-[12.5px] text-muted-foreground max-sm:hidden">
+          <span class="truncate"><span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links</span>
+          <span v-if="dense" class="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[11px] max-lg:hidden">dense · links shown for the hovered or selected doc</span>
+          <button v-if="SHOW_BROKEN && graph.broken.length" class="shrink-0 whitespace-nowrap rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
             {{ graph.broken.length }} broken {{ graph.broken.length === 1 ? 'link' : 'links' }}
           </button>
         </span>
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
         <button class="h-8 w-8 rounded-md text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="How it works" @click="info?.open()">?</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="load(selected ?? undefined)">rescan</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="Reset positions to the automatic layout" @click="reorder">reorder</button>
@@ -182,6 +183,12 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
           <svg viewBox="0 0 16 16" class="mx-auto size-4" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="1.5" y="2.5" width="13" height="11" rx="2" /><path d="M10 2.5v11" /><path v-if="panelOpen" d="M10 8h4.5" class="stroke-accent-orange" stroke-width="2" /></svg>
         </button>
       </div>
+      <span v-if="graph" class="hidden w-full min-w-0 items-center gap-2 text-[12px] text-muted-foreground max-sm:flex">
+        <span class="truncate"><span class="text-foreground">{{ rootName }}</span> · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links</span>
+        <button v-if="SHOW_BROKEN && graph.broken.length" class="ml-auto shrink-0 whitespace-nowrap rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
+          {{ graph.broken.length }} broken
+        </button>
+      </span>
     </header>
     <InfoDialog v-if="graph" ref="info" :entry="graph.entry" :docs="graph.docs" />
 
