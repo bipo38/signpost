@@ -34,16 +34,16 @@ export function serve({ root, docs, port, open }) {
         return json(201, { path })
       }
       if (url.pathname === '/api/relink' && req.method === 'POST') {
-        const { from, ref, to } = JSON.parse(await new Response(req).text())
+        const { from, ref, to, line } = JSON.parse(await new Response(req).text())
         const g = scan(root, opts)
         if (!g.nodes.some((n) => n.path === from)) return json(404, { error: 'unknown file' })
         if (to && !g.nodes.some((n) => n.path === to)) return json(400, { error: `${to} is not a doc in this graph` })
-        return json(200, { changed: relink(root, from, ref, to) })
+        return json(200, { changed: relink(root, from, ref, to, line) })
       }
       if (url.pathname === '/api/unlink' && req.method === 'POST') {
-        const { from, ref } = JSON.parse(await new Response(req).text())
+        const { from, ref, line } = JSON.parse(await new Response(req).text())
         if (!scan(root, opts).nodes.some((n) => n.path === from)) return json(404, { error: 'unknown file' })
-        return json(200, { removed: unlink(root, from, ref) })
+        return json(200, { removed: unlink(root, from, ref, line) })
       }
       // Static UI from dist, SPA fallback to index.html.
       let file = join(DIST, normalize(url.pathname).replace(/^(\.\.[/\\])+/, ''))

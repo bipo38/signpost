@@ -55,23 +55,24 @@ export function scan(root, { docs = 'docs', ignore = ['guide', 'node_modules'] }
 // Lines Signpost knows how to clean without touching prose: table rows, "See also" lines, "Related:" lists.
 const FIXABLE = /^\s*(\||See also\b|Related:)/
 
-// Remove every fixable reference to `ref` in `from`. Table rows and "See also" lines are dropped;
-// in a "Related:" list only that entry goes, the line goes when the list is empty. Prose is left alone.
-export function unlink(root, from, ref) {
+// Remove the fixable references to `ref` in `from`, on every line or only on `line` (1-based). Table rows
+// and "See also" lines are dropped; in a "Related:" list only that entry goes, the line goes when the list
+// is empty. Prose is left alone.
+export function unlink(root, from, ref, only) {
   const file = join(root, from)
   const lines = readFileSync(file, 'utf8').split('\n')
   let removed = 0
   const out = []
-  for (const line of lines) {
-    if (!line.includes(ref) || !FIXABLE.test(line)) { out.push(line); continue }
+  lines.forEach((line, i) => {
+    if ((only && i + 1 !== only) || !line.includes(ref) || !FIXABLE.test(line)) { out.push(line); return }
     if (/^\s*Related:/.test(line)) {
       const rest = line.replace(/^\s*Related:\s*/, '').replace(/\.\s*$/, '').split(/,\s*/).filter((e) => !e.includes(ref))
       removed++
       if (rest.length) out.push(`Related: ${rest.join(', ')}.`)
-      continue
+      return
     }
     removed++ // table row or See also line: drop it
-  }
+  })
   if (removed) writeFileSync(file, out.join('\n').replace(/\n{3,}/g, '\n\n'))
   return removed
 }
@@ -118,16 +119,18 @@ export function create(root, { path, situation, body, parents = [], links = [], 
   return path
 }
 
-// Rewrite every reference to `ref` in `from`: with `to` set, point it at `to`; with `to` empty, strip the
-// reference itself (a backticked path disappears, a markdown link keeps its text). Prose stays otherwise intact.
-export function relink(root, from, ref, to) {
+// Rewrite the references to `ref` in `from`, on every line or only on `line` (1-based): with `to` set, point
+// them at `to`; with `to` empty, strip the reference itself (a backticked path disappears, a markdown link
+// keeps its text). Prose stays otherwise intact.
+export function relink(root, from, ref, to, only) {
   const file = join(root, from)
   const esc = ref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   let n = 0
-  const text = readFileSync(file, 'utf8')
+  const fix = (line) => line
     .replace(new RegExp('`' + esc + '`', 'g'), () => { n++; return to ? '`' + to + '`' : '' })
     .replace(new RegExp('\\[([^\\]]*)\\]\\(' + esc + '\\)', 'g'), (_, label) => { n++; return to ? `[${label}](${to})` : label })
     .replace(/ {2,}([.,;)])/g, '$1').replace(/\( +/g, '(').replace(/ +\)/g, ')')
+  const text = readFileSync(file, 'utf8').split('\n').map((l, i) => (only && i + 1 !== only ? l : fix(l))).join('\n')
   if (n) writeFileSync(file, text)
   return n
 }

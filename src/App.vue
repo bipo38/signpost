@@ -122,9 +122,9 @@ onMounted(() => {
 
 const rootName = computed(() => graph.value?.root.split('/').pop())
 
-async function unlink(b: { from: string; ref: string; fixable: boolean }) {
-  // Table rows and "See also" lines are dropped whole; in prose only the reference is stripped.
-  await (b.fixable ? api.unlink(b.from, b.ref) : api.relink(b.from, b.ref, ''))
+async function unlink(b: { from: string; ref: string; fixable: boolean; line: number }) {
+  // Only this line: table rows and "See also" lines are dropped whole; in prose only the reference is stripped.
+  await (b.fixable ? api.unlink(b.from, b.ref, b.line) : api.relink(b.from, b.ref, '', b.line))
   await load()
   if (graph.value?.broken.length) mode.value = 'broken'
 }
@@ -152,7 +152,7 @@ function diffOf(b: { text: string; ref: string; fixable: boolean; line: number; 
 async function relink(b: { from: string; ref: string; line: number }) {
   const to = fixTarget.value[fixKey(b)] ?? suggest(b.ref)
   if (!to) return
-  await api.relink(b.from, b.ref, to)
+  await api.relink(b.from, b.ref, to, b.line)
   await load()
   if (graph.value?.broken.length) mode.value = 'broken'
 }

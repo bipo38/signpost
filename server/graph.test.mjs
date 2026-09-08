@@ -69,3 +69,16 @@ test('relink repoints or strips a reference inside prose', () => {
   assert.equal(relink(root, 'docs/plan.md', 'PICKER.md', ''), 2)
   assert.equal(readFileSync(join(root, 'docs/plan.md'), 'utf8'), '# Plan\n\nRead the skill (and its). See picker.\n')
 })
+
+test('unlink and relink can be scoped to one line', () => {
+  const root = fixture()
+  writeFileSync(join(root, 'docs/plan.md'), '# Plan\n\nSee also `docs/gone.md` — a.\n\nSee also `docs/gone.md` — b.\n\nOpen `docs/gone.md` now, then `docs/gone.md` again.\n')
+  assert.equal(unlink(root, 'docs/plan.md', 'docs/gone.md', 5), 1)
+  let plan = readFileSync(join(root, 'docs/plan.md'), 'utf8')
+  assert.match(plan, /See also `docs\/gone.md` — a\./)
+  assert.doesNotMatch(plan, /— b\./)
+  assert.equal(relink(root, 'docs/plan.md', 'docs/gone.md', 'docs/plan-mode.md', 5), 2)
+  plan = readFileSync(join(root, 'docs/plan.md'), 'utf8')
+  assert.match(plan, /Open `docs\/plan-mode.md` now, then `docs\/plan-mode.md` again\./)
+  assert.match(plan, /See also `docs\/gone.md` — a\./, 'other lines untouched')
+})
