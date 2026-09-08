@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { create, insertRow, relink, scan, unlink } from './graph.mjs'
+import { create, insertRow, mdPaths, relink, scan, unlink } from './graph.mjs'
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'ctx-'))
@@ -81,4 +81,18 @@ test('unlink and relink can be scoped to one line', () => {
   plan = readFileSync(join(root, 'docs/plan.md'), 'utf8')
   assert.match(plan, /Open `docs\/plan-mode.md` now, then `docs\/plan-mode.md` again\./)
   assert.match(plan, /See also `docs\/gone.md` — a\./, 'other lines untouched')
+})
+
+test('scan honours the docs folder and the walk prunes node_modules', () => {
+  const root = fixture()
+  mkdirSync(join(root, 'specs'))
+  mkdirSync(join(root, 'node_modules/x'), { recursive: true })
+  writeFileSync(join(root, 'specs/a.md'), '# A\n')
+  writeFileSync(join(root, 'node_modules/x/README.md'), '# no\n')
+  const paths = scan(root, { docs: 'specs' }).nodes.map((n) => n.path)
+  assert.deepEqual(paths.slice(0, 2), ['CLAUDE.md', 'specs/a.md'])
+  assert.ok(paths.includes('docs/plan.md'), 'docs the entry points at still join the graph')
+  assert.ok(!paths.includes('docs/testing/ui.md'), 'docs only reachable through an unscanned doc do not')
+  assert.ok(!mdPaths(root).some((p) => p.startsWith('node_modules')))
+  assert.ok(mdPaths(root).includes('docs/testing/ui.md'))
 })

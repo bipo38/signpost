@@ -1,59 +1,25 @@
-// Pure filesystem logic: scan the docs graph, create a wired-in doc. No deps.
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
-
-const LINK = /`([\w./-]+\.md)`|\]\(([\w./-]+\.md)\)/g
-const ENTRIES = ['CLAUDE.md', 'AGENTS.md']
+// Filesystem layer over the shared scan core: list and read the repo's markdown, create and edit docs.
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { ENTRIES, FIXABLE, SKIP, scanFiles } from '../shared/scan.mjs'
 
 export function findEntry(root) {
   return ENTRIES.find((f) => existsSync(join(root, f))) ?? ENTRIES[0]
 }
 
-// Resolve a referenced path against the root, then against the referencing file's dir.
-function resolveRef(root, from, ref) {
-  for (const base of [root, join(root, dirname(from))]) {
-    const abs = resolve(base, ref)
-    if (abs.startsWith(root) && existsSync(abs) && statSync(abs).isFile()) return relative(root, abs)
-  }
-  return null
-}
-
-export function scan(root, { docs = 'docs', ignore = ['guide', 'node_modules'] } = {}) {
-  const entry = findEntry(root)
-  const nodes = new Set(existsSync(join(root, entry)) ? [entry] : [])
-  if (existsSync(join(root, docs)))
-    for (const f of readdirSync(join(root, docs), { recursive: true }))
-      if (f.endsWith('.md') && !ignore.some((i) => f.split('/').includes(i))) nodes.add(`${docs}/${f}`)
-  const edges = new Map()
-  const broken = [] // references to .md files that do not exist (deleted or renamed)
-  for (const from of [...nodes]) {
-    const lines = readFileSync(join(root, from), 'utf8').split('\n')
-    lines.forEach((text, i) => {
-      for (const m of text.matchAll(LINK)) {
-        const ref = m[1] ?? m[2]
-        const to = resolveRef(root, from, ref)
-        if (!to) {
-          if (!broken.some((b) => b.from === from && b.line === i + 1 && b.ref === ref)) broken.push({ from, ref, line: i + 1, text: text.trim(), fixable: FIXABLE.test(text) })
-          continue
-        }
-        if (to === from) continue
-        nodes.add(to)
-        edges.set(`${from}|${to}`, (edges.get(`${from}|${to}`) ?? 0) + 1)
-      }
-    })
-  }
-  const returnTables = [...nodes].filter((n) => /^\| *Came from/m.test(readFileSync(join(root, n), 'utf8')))
-  return {
-    root, entry, docs,
-    nodes: [...nodes].map((path) => ({ path, title: titleOf(readFileSync(join(root, path), 'utf8')) ?? path })),
-    edges: [...edges].map(([k, count]) => { const [from, to] = k.split('|'); return { from, to, count } }),
-    returnTables,
-    broken,
+// Every .md under root, pruned of SKIP folders. Symlinked directories are not followed.
+function* walk(dir, rel = '') {
+  for (const d of readdirSync(dir, { withFileTypes: true })) {
+    if (SKIP.includes(d.name)) continue
+    const p = rel ? `${rel}/${d.name}` : d.name
+    if (d.isDirectory()) yield* walk(join(dir, d.name), p)
+    else if (p.endsWith('.md')) yield p
   }
 }
+export const mdPaths = (root) => [...walk(root)]
 
-// Lines Signpost knows how to clean without touching prose: table rows, "See also" lines, "Related:" lists.
-const FIXABLE = /^\s*(\||See also\b|Related:)/
+// ponytail: walks the whole repo on every request; give scanFiles an exists() callback if monorepos hurt.
+export const scan = (root, { docs = 'docs' } = {}) => ({ root, ...scanFiles({ docs, paths: mdPaths(root), read: (p) => readFileSync(join(root, p), 'utf8') }) })
 
 // Remove the fixable references to `ref` in `from`, on every line or only on `line` (1-based). Table rows
 // and "See also" lines are dropped; in a "Related:" list only that entry goes, the line goes when the list
@@ -76,8 +42,6 @@ export function unlink(root, from, ref, only) {
   if (removed) writeFileSync(file, out.join('\n').replace(/\n{3,}/g, '\n\n'))
   return removed
 }
-
-const titleOf = (text) => text.match(/^# (.+)$/m)?.[1]
 
 // Insert `row` after the last row of the first table in `text` (or the table under `heading`).
 export function insertRow(text, row, heading) {

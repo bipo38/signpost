@@ -162,6 +162,13 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .below h3 { font-size: 13px; text-transform: lowercase; letter-spacing: .02em; color: var(--muted-foreground); font-weight: 500; margin: 0 0 10px; }
 .v3 .below .footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--border); }
 
+/* Repo form under the install command */
+.repo { display: flex; gap: 8px; max-width: 520px; margin-top: 10px; }
+.repo input { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--border, #ddd); border-radius: var(--radius, 8px); background: var(--card, #fff); color: var(--foreground, #111); font: inherit; font-size: 13.5px; outline: none; }
+.repo input:focus { border-color: var(--ring, #d9603a); }
+.repo .btn { height: 36px; }
+.repo-note { margin: 8px 0 0; font-size: 12px; color: var(--muted-foreground, #777); }
+.repo-note code { font-size: 11.5px; }
 @media (max-width: 900px) {
   .v3 .canvasrow { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .v3 .canvas, .v3 .panel { min-width: 0; }
@@ -214,7 +221,6 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 <div id="app"></div>
 <script>
 const GH = 'https://github.com/bipo38/signpost';
-const INSTALL = 'pnpm add -D @brotzi/signpost';
 const NPX = 'npx @brotzi/signpost';
 
 const copyBtn = (text, label = 'copy') =>
@@ -343,6 +349,11 @@ const v3 = () => `<div class="v3">
     <h1>Your CLAUDE.md or AGENTS.md is a graph. <br>Signpost draws it.</h1>
     <p class="lede">Point it at your repo: it starts from <code>CLAUDE.md</code>, or <code>AGENTS.md</code> when that is what you have, then reads every markdown doc under <code>docs/</code> and every path they mention.</p>
     <div class="cmd" style="max-width:520px"><span><span class="p">$</span>${NPX}</span>${copyBtn(NPX)}</div>
+    <form class="repo" id="repo-form" autocomplete="off">
+      <input name="repo" placeholder="or a public GitHub repo: owner/name" required spellcheck="false" aria-label="GitHub repository">
+      <button class="btn" type="submit">open graph</button>
+    </form>
+    <p class="repo-note">Read-only, straight from GitHub in your browser. Paste a folder URL to scope it, like <code>github.com/owner/name/tree/main/docs</code>.</p>
     <div class="cols">
       <div><h3>reads</h3><p class="dim" style="margin:0;font-size:14px">Backticked paths like <code>docs/plan.md</code> and markdown links become arrows. A number on an edge is how many times the doc is mentioned.</p></div>
       <div><h3>fixes</h3><p class="dim" style="margin:0;font-size:14px">Broken pointers get their own list. Each one shows the reference as a diff, and one click points it at another doc or removes it.</p></div>
@@ -438,6 +449,17 @@ document.addEventListener('click', async e => {
 
 document.getElementById('app').innerHTML = v3();
 wireV3();
+
+/* Repo form → the app page, which reads the repo through the GitHub API. */
+document.getElementById('repo-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const m = e.target.repo.value.trim().match(/^(?:https?:\/\/)?(?:www\.)?(?:github\.com\/)?([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([^/]+)(?:\/(.+?))?)?\/?$/);
+  if (!m) { e.target.repo.setCustomValidity('owner/name, or a github.com URL'); e.target.reportValidity(); e.target.repo.setCustomValidity(''); return; }
+  const p = new URLSearchParams({ repo: `${m[1]}/${m[2]}` });
+  if (m[3]) p.set('ref', m[3]);
+  if (m[4]) p.set('docs', m[4]);
+  location.href = `app/?${p}`;
+});
 </script>
 </body>
 </html>

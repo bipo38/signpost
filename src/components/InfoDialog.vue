@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{ entry: string; docs: string }>()
+defineProps<{ entry: string; docs: string; readOnly?: boolean }>()
 const el = ref<HTMLDialogElement | null>(null)
 defineExpose({ open: () => el.value?.showModal() })
 </script>
@@ -24,7 +24,8 @@ defineExpose({ open: () => el.value?.showModal() })
       <section class="space-y-5 text-[13.5px] leading-relaxed">
         <div>
           <h3 class="mb-1 text-[11px] font-medium lowercase tracking-wide text-muted-foreground">what is a card</h3>
-          <p>Every markdown file in <code class="rounded bg-muted px-1">{{ docs }}/</code>, plus <code class="rounded bg-muted px-1">{{ entry }}</code> (the entry, badged) and any other file they mention. The colored edge is the folder. <span class="text-accent-success">↓</span> counts docs pointing here, <span class="text-accent-orange">↑</span> counts docs this one points to.</p>
+          <p v-if="readOnly" class="mb-2 rounded-md bg-muted px-3 py-2 text-[12.5px]">This is the web version: the graph is read from a public GitHub repo in your browser and nothing can be written. Install <code class="rounded bg-background px-1">@brotzi/signpost</code> to create and fix docs locally.</p>
+          <p>Every markdown file in <code class="rounded bg-muted px-1">{{ docs === '.' ? 'the whole repo' : docs + '/' }}</code>, plus <code class="rounded bg-muted px-1">{{ entry }}</code> (the entry, badged) and any other file they mention. The colored edge is the folder. <span class="text-accent-success">↓</span> counts docs pointing here, <span class="text-accent-orange">↑</span> counts docs this one points to.</p>
         </div>
 
         <div>
@@ -79,6 +80,7 @@ Related: `{{ docs }}/testing/ui.md`.</pre>
           <h3 class="mb-1 text-[11px] font-medium lowercase tracking-wide text-muted-foreground">reading and moving around</h3>
           <ul class="list-disc space-y-1 pl-5">
             <li>Click a card to read it. Paths inside the text are clickable and jump to that card.</li>
+            <li>The folder name in the header opens a picker with every folder that holds markdown. Pick one to scope the graph or to match a repo with another layout; the choice lands in the URL as <code class="rounded bg-muted px-1">?docs=</code>.</li>
             <li>Drag cards anywhere. <strong>reorder</strong> puts them back: ranked left to right by distance from the entry, grouped by folder.</li>
             <li>On dense graphs, arrows are drawn only for the card under the cursor or the selected one. Hover to explore.</li>
             <li>Scroll to zoom, drag the background to pan, the corner buttons refit.</li>

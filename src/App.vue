@@ -4,12 +4,13 @@ import { VueFlow, useVueFlow, type Edge as FlowEdge, type Node as FlowNode } fro
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { marked } from 'marked'
-import { api, type Graph } from './api'
+import { api, readOnly, repo, setDocs, type Graph } from './api'
 import { DENSE_EDGES, NODE_H, NODE_W, toFlow } from './layout'
 import DocNode from './components/DocNode.vue'
 import NewDocForm from './components/NewDocForm.vue'
 import InfoDialog from './components/InfoDialog.vue'
 import LinkedDocs from './components/LinkedDocs.vue'
+import FolderPicker from './components/FolderPicker.vue'
 
 const graph = ref<Graph | null>(null)
 const nodes = shallowRef<FlowNode[]>([])
@@ -49,6 +50,7 @@ function togglePanel(open = !panelOpen.value) {
   nextTick(fit)
 }
 const loadError = ref('')
+const loading = ref(false)
 const { setViewport, dimensions } = useVueFlow()
 
 // Recompute the dagre layout from the current graph and fit it into view.
@@ -59,9 +61,12 @@ function reorder() {
   edges.value = f.edges
   highlight()
   requestAnimationFrame(fit)
+  // ponytail: a graph that arrives seconds after mount (GitHub mode) sometimes misses the first fit; one retry covers it.
+  setTimeout(fit, 400)
 }
 
 async function load(focus?: string) {
+  loading.value = true
   try {
     graph.value = await api.graph()
     loadError.value = ''
@@ -70,7 +75,17 @@ async function load(focus?: string) {
     reorder()
   } catch (e) {
     loadError.value = (e as Error).message
+  } finally {
+    loading.value = false
   }
+}
+
+const picker = ref<InstanceType<typeof FolderPicker> | null>(null)
+function pickDocs(d: string) {
+  setDocs(d)
+  selected.value = null
+  mode.value = 'view'
+  load()
 }
 
 async function select(path: string) {
@@ -166,7 +181,7 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
       <div class="flex min-w-0 flex-1 items-center gap-3 max-sm:order-none">
         <h1 class="shrink-0 font-display text-[22px] leading-none">signpost</h1>
         <span v-if="graph" class="flex min-w-0 items-center gap-2 text-[12.5px] text-muted-foreground max-sm:hidden">
-          <span class="truncate"><span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links</span>
+          <span class="truncate"><span class="text-foreground">{{ rootName }}</span> · {{ graph.entry }} · <button class="rounded-sm px-1 text-foreground hover:bg-accent" title="Change the scanned folder" @click="picker?.open()">{{ graph.docs === '.' ? 'whole repo' : graph.docs }} ▾</button> · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links</span>
           <span v-if="dense" class="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[11px] max-lg:hidden">dense · links shown for the hovered or selected doc</span>
           <button v-if="SHOW_BROKEN && graph.broken.length" class="shrink-0 whitespace-nowrap rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
             {{ graph.broken.length }} broken {{ graph.broken.length === 1 ? 'link' : 'links' }}
@@ -175,22 +190,23 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
       </div>
       <div class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
         <button class="h-8 w-8 rounded-md text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="How it works" @click="info?.open()">?</button>
-        <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="load(selected ?? undefined)">rescan</button>
+        <button v-if="!readOnly" class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="load(selected ?? undefined)">rescan</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title="Reset positions to the automatic layout" @click="reorder">reorder</button>
         <button class="h-8 rounded-md px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :aria-pressed="dark" @click="setDark(!dark)">{{ dark ? 'light' : 'dark' }}</button>
-        <button class="ml-1 h-8 rounded-md bg-primary px-3 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90" @click="mode = 'create'; selected = null; panelOpen = true">new doc</button>
+        <button v-if="!readOnly" class="ml-1 h-8 rounded-md bg-primary px-3 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90" @click="mode = 'create'; selected = null; panelOpen = true">new doc</button>
         <button class="h-8 w-8 rounded-md text-[12.5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :title="panelOpen ? 'Hide panel' : 'Show panel'" :aria-pressed="panelOpen" @click="togglePanel()">
           <svg viewBox="0 0 16 16" class="mx-auto size-4" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="1.5" y="2.5" width="13" height="11" rx="2" /><path d="M10 2.5v11" /><path v-if="panelOpen" d="M10 8h4.5" class="stroke-accent-orange" stroke-width="2" /></svg>
         </button>
       </div>
       <span v-if="graph" class="hidden w-full min-w-0 items-center gap-2 text-[12px] text-muted-foreground max-sm:flex">
-        <span class="truncate"><span class="text-foreground">{{ rootName }}</span> · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links</span>
+        <span class="truncate"><span class="text-foreground">{{ rootName }}</span> · <button class="rounded-sm px-1 text-foreground hover:bg-accent" @click="picker?.open()">{{ graph.docs === '.' ? 'whole repo' : graph.docs }} ▾</button> · {{ graph.nodes.length }} docs · {{ graph.edges.length }} links</span>
         <button v-if="SHOW_BROKEN && graph.broken.length" class="ml-auto shrink-0 whitespace-nowrap rounded-sm border border-destructive/40 bg-destructive/10 px-1.5 py-px text-[11px] text-destructive hover:bg-destructive/20" @click="mode = 'broken'; selected = null; panelOpen = true">
           {{ graph.broken.length }} broken
         </button>
       </span>
     </header>
-    <InfoDialog v-if="graph" ref="info" :entry="graph.entry" :docs="graph.docs" />
+    <InfoDialog v-if="graph" ref="info" :entry="graph.entry" :docs="graph.docs" :read-only="readOnly" />
+    <FolderPicker v-if="graph" ref="picker" :current="graph.docs" @pick="pickDocs" />
 
     <div class="grid min-h-0" :class="panelOpen ? 'grid-cols-[1fr_360px]' : 'grid-cols-[1fr]'">
       <div class="relative min-h-0">
@@ -217,7 +233,7 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
       </div>
 
       <aside v-if="panelOpen" class="min-h-0 overflow-y-auto border-l bg-card/60 px-6 py-5">
-        <template v-if="mode === 'create' && graph">
+        <template v-if="mode === 'create' && graph && !readOnly">
           <h2 class="mb-4 font-display text-[24px] leading-none">new doc</h2>
           <NewDocForm :graph="graph" @created="load($event)" @cancel="mode = 'view'" />
         </template>
@@ -226,7 +242,8 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
             <h2 class="font-display text-[24px] leading-none">broken links</h2>
             <button class="text-[11px] text-muted-foreground hover:text-foreground" @click="mode = 'view'">close</button>
           </div>
-          <p class="mb-4 text-[12.5px] text-muted-foreground">References to docs that no longer exist. <strong>replace</strong> points the reference at another doc. <strong>remove</strong> drops a table row or "See also" line, and in prose strips just the reference.</p>
+          <p v-if="readOnly" class="mb-4 text-[12.5px] text-muted-foreground">References to docs that no longer exist. Fixing them needs the local tool, which can write to the repo.</p>
+          <p v-else class="mb-4 text-[12.5px] text-muted-foreground">References to docs that no longer exist. <strong>replace</strong> points the reference at another doc. <strong>remove</strong> drops a table row or "See also" line, and in prose strips just the reference.</p>
           <ul class="space-y-3">
             <li v-for="b in graph.broken" :key="fixKey(b)" class="rounded-md border bg-card px-3 py-2.5 text-[12.5px]">
               <div class="flex items-center justify-between gap-2">
@@ -244,7 +261,7 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
                   <span v-else class="truncate">{{ diffOf(b).pre2 }}<mark v-if="diffOf(b).to" class="rounded-sm bg-accent-success/15 px-0.5 text-accent-success">{{ diffOf(b).to }}</mark>{{ diffOf(b).post2 }}</span>
                 </div>
               </div>
-              <div class="mt-2 flex items-center gap-1.5">
+              <div v-if="!readOnly" class="mt-2 flex items-center gap-1.5">
                 <select :value="fixTarget[fixKey(b)] ?? suggest(b.ref)" class="h-7 min-w-0 flex-1 rounded-md border bg-card px-1.5 text-[11.5px] outline-none focus-visible:border-ring" @change="fixTarget[fixKey(b)] = ($event.target as HTMLSelectElement).value">
                   <option value="" disabled>replace with…</option>
                   <option v-for="n in graph.nodes" :key="n.path" :value="n.path">{{ n.path }}</option>
@@ -263,6 +280,10 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
           <LinkedDocs v-if="graph" :key="selected" :graph="graph" :path="selected" @go="select" />
           <article class="prose-doc" @click="onProseClick" v-html="html" />
         </template>
+        <div v-else-if="loading && !graph" class="flex h-full flex-col justify-center gap-2 text-center text-[13px] text-muted-foreground">
+          <p class="font-display text-[22px] text-foreground">reading {{ repo ?? 'the repo' }}…</p>
+          <p v-if="repo">fetching the file listing and the docs from GitHub.</p>
+        </div>
         <div v-else class="flex h-full flex-col justify-center gap-2 text-center text-[13px] text-muted-foreground">
           <p class="font-display text-[22px] text-foreground">nothing selected</p>
           <p>click a doc to read it, or drag them around.<br />arrows point from the doc that references to the doc it references.</p>

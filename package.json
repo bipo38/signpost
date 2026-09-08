@@ -1,6 +1,6 @@
 {
   "name": "@brotzi/signpost",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Graph of the context-pointer docs behind CLAUDE.md / AGENTS.md, with a form to add new docs already wired in",
   "type": "module",
   "license": "MIT",
@@ -10,6 +10,7 @@
   "files": [
     "bin",
     "server",
+    "shared",
     "dist"
   ],
   "engines": {
@@ -19,7 +20,7 @@
     "dev": "vite",
     "dev:api": "node bin/signpost.mjs --root example --no-open",
     "build": "vue-tsc --noEmit && vite build",
-    "test": "node --test server/*.test.mjs src/*.test.ts",
+    "test": "node --test server/*.test.mjs shared/*.test.mjs src/*.test.ts",
     "prepare": "vue-tsc --noEmit && vite build"
   },
   "devDependencies": {

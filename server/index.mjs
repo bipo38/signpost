@@ -2,17 +2,25 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { exec } from 'node:child_process'
-import { create, relink, scan, unlink } from './graph.mjs'
+import { create, mdPaths, relink, scan, unlink } from './graph.mjs'
+import { foldersOf } from '../shared/scan.mjs'
 
 const DIST = join(import.meta.dirname, '..', 'dist')
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' }
 
+// A docs folder from the query: relative, no empty or `..` segments. It only filters a list walked from root.
+const DOCS_OK = /^(\.|[\w.-]+(\/[\w.-]+)*)\/?$/
+
 export function serve({ root, docs, port, open }) {
-  const opts = { docs }
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x')
     const json = (code, body) => res.writeHead(code, { 'content-type': 'application/json' }).end(JSON.stringify(body))
     try {
+      // The UI may switch the scanned folder per request (?docs=); --docs is only the default.
+      const d = url.searchParams.get('docs')
+      if (d !== null && (!DOCS_OK.test(d) || d.split('/').includes('..'))) return json(400, { error: 'bad docs folder' })
+      const opts = { docs: d ?? docs }
+      if (url.pathname === '/api/folders') return json(200, foldersOf(mdPaths(root)))
       if (url.pathname === '/api/graph') return json(200, scan(root, opts))
       if (url.pathname === '/api/file') {
         const p = url.searchParams.get('p')
@@ -24,7 +32,7 @@ export function serve({ root, docs, port, open }) {
         const file = f.get('file')
         const uploaded = file?.size ? await file.text() : ''
         const path = create(root, {
-          path: f.get('path') || (file?.size ? `${docs}/${file.name}` : ''),
+          path: f.get('path') || (file?.size ? `${opts.docs}/${file.name}` : ''),
           situation: f.get('situation'),
           body: uploaded || f.get('body'),
           parents: f.getAll('parents'),

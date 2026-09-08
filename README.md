@@ -39,25 +39,35 @@ signpost --help
 | Flag | Default | Meaning |
 |------|---------|---------|
 | `--root` | cwd | Repo to scan. Files are read and written relative to it. |
-| `--docs` | `docs` | Folder whose `*.md` files become nodes. `guide/` and `node_modules/` are skipped. |
+| `--docs` | `docs` | Folder whose `*.md` files become nodes at start. Switch it any time from the folder name in the header. |
 | `--port` | `4747` | Port on localhost. |
 | `--no-open` | | Do not open the browser. |
 
 ## What it reads
 
 - **Entry.** `CLAUDE.md`, else `AGENTS.md`, in `--root`.
-- **Nodes.** The entry file, every `*.md` under `--docs`, and any other markdown file they reference (for example a `PRODUCT.md` at the root).
+- **Nodes.** The entry file, every `*.md` under the chosen folder, and any other markdown file they reference (for example a `PRODUCT.md` at the root). `node_modules`, `.git`, `dist` and `vendor` are never scanned.
 - **Edges.** Backticked paths like `` `docs/plan.md` `` and markdown links like `[ui](testing/ui.md)`, resolved from the root and then from the referencing file's folder. An arrow goes from the doc that references to the doc it references. A number on an edge is the reference count.
 
 Nothing is written until you press **create doc**.
 
 ## Using the graph
 
+- **Folder.** The folder name in the header opens a picker listing every folder in the repo that holds markdown, with counts. Pick one to scope the graph or to match a repo with another layout. The choice lands in the URL as `?docs=`, so it can be shared.
+
 - **Read.** Click a card to render the doc on the right, under a small diagram of what points at it and what it points to. Every dot and name there, and every backticked path in the text, jumps to that card.
 - **Arrange.** Cards are ranked left to right by link distance from the entry doc, clustered by folder, and tinted per folder. Drag them freely. **reorder** puts them back and refits the view. **rescan** re-reads the files after you edit them outside the tool.
 - **Dense graphs.** Above 250 links, edges are drawn only for the hovered or selected doc, so a few hundred docs stay readable and load instantly.
 - **Panel.** The icon at the far right of the header hides or shows the side panel. Selecting a card or pressing **new doc** opens it again.
 - **Theme.** **light** / **dark** follows your system by default and remembers your choice in the browser.
+
+## Web version
+
+The same UI runs against a public GitHub repo, with nothing installed: https://bipo38.github.io/signpost/app/?repo=owner/name
+
+- Optional `&docs=path` picks the folder and `&ref=branch` the branch or commit. The landing page has a form that builds this URL from an `owner/name` or a `github.com/.../tree/branch/folder` URL.
+- Read-only: reading and the folder picker work, creating and fixing docs do not, since the page has no write access to your repo.
+- Everything happens in your browser. One call to the GitHub API per load for the file listing (60 per hour per IP without a login), then the docs come from raw.githubusercontent.com. Repos over 100k files get a truncated listing.
 
 ## Creating a doc
 
