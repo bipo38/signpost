@@ -61,14 +61,6 @@ Nothing is written until you press **create doc**.
 - **Panel.** The icon at the far right of the header hides or shows the side panel. Selecting a card or pressing **new doc** opens it again.
 - **Theme.** **light** / **dark** follows your system by default and remembers your choice in the browser.
 
-## Web version
-
-The same UI runs against a public GitHub repo, with nothing installed: https://bipo38.github.io/signpost/app/?repo=owner/name
-
-- Optional `&docs=path` picks the folder and `&ref=branch` the branch or commit. The landing page has a form that builds this URL from an `owner/name` or a `github.com/.../tree/branch/folder` URL.
-- Read-only: reading and the folder picker work, creating and fixing docs do not, since the page has no write access to your repo.
-- Everything happens in your browser. One call to the GitHub API per load for the file listing (60 per hour per IP without a login), then the docs come from raw.githubusercontent.com. Repos over 100k files get a truncated listing.
-
 ## Creating a doc
 
 **new doc** opens a form. Every field maps to a concrete edit:

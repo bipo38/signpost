@@ -2,7 +2,7 @@ name: pages
 on:
   push:
     branches: [master]
-    paths: ['site/**', 'src/**', 'shared/**', 'index.html', 'vite.config.ts', 'package.json', 'pnpm-lock.yaml', '.github/workflows/pages.yml']
+    paths: ['site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,14 +15,7 @@ jobs:
     environment: { name: github-pages, url: '${{ steps.deploy.outputs.page_url }}' }
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 10 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm }
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      # The app lives under /signpost/app/ on Pages; the landing page stays a plain file in site/.
-      - run: pnpm build --base=/signpost/app/
-      - run: cp -r dist site/app
+      # The hosted app (pnpm build --base=/signpost/app/ copied to site/app) is not published yet.
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
       - id: deploy
