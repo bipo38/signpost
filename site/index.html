@@ -77,7 +77,8 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 /* ================= V3 LIVE GRAPH ================= */
 .v3 { display: flex; flex-direction: column; min-height: 100vh; }
 .v3 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 10px 24px; border-bottom: 1px solid var(--border); background: var(--card); }
-.v3 header .meta { font-size: 13px; color: var(--muted-foreground); }
+.v3 header .meta { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; color: var(--muted-foreground); }
+.v3 header .meta .stat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v3 header .meta b { font-weight: 500; color: var(--foreground); }
 .v3 header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; color: var(--muted-foreground); align-items: center; }
 .v3 header nav a { text-decoration: none; }
@@ -120,7 +121,7 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .panel p code, .v3 .panel li code { font-size: 12px; background: var(--muted); padding: 1px 5px; border-radius: 4px; color: var(--primary); cursor: pointer; }
 .v3 .panel ul { font-size: 13.5px; padding-left: 20px; margin: 0 0 10px; }
 /* Broken links, mirrors the app panel */
-.v3 .badge { margin-left: 8px; padding: 1px 6px; border-radius: 4px; border: 1px solid color-mix(in oklch, var(--destructive) 40%, transparent); background: color-mix(in oklch, var(--destructive) 10%, transparent); color: var(--destructive); font-size: 11px; cursor: pointer; transition: background 150ms ease-out; }
+.v3 .badge { flex-shrink: 0; padding: 1px 6px; border-radius: 4px; border: 1px solid color-mix(in oklch, var(--destructive) 40%, transparent); background: color-mix(in oklch, var(--destructive) 10%, transparent); color: var(--destructive); font-size: 11px; cursor: pointer; transition: background 150ms ease-out; }
 .v3 .badge:hover { background: color-mix(in oklch, var(--destructive) 20%, transparent); }
 .v3 .panel .intro { font-size: 12.5px; color: var(--muted-foreground); margin: 0 0 16px; }
 .v3 .bl { border: 1px solid var(--border); border-radius: 6px; background: var(--card); padding: 10px 12px; font-size: 12.5px; margin-bottom: 12px; }
@@ -163,10 +164,8 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
 .v3 .below .footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--border); }
 
 @media (max-width: 900px) {
-  .v3 header { padding: 10px 16px; }
-  .v3 header .meta { order: 3; flex-basis: 100%; font-size: 12.5px; }
   .v3 .canvasrow { grid-template-columns: minmax(0, 1fr); min-height: 0; }
-  .v3 .canvas, .v3 .panel, .v3 header .meta { min-width: 0; }
+  .v3 .canvas, .v3 .panel { min-width: 0; }
   /* Right-edge fade says "there is more to the right" without a control. */
   .v3 .canvasrow { position: relative; }
   .v3 .canvasrow::after { content: ''; position: absolute; top: 0; right: 0; width: 48px; height: var(--plot-h, 440px); pointer-events: none; background: linear-gradient(to right, transparent, var(--background)); }
@@ -180,7 +179,15 @@ td code { font-size: 12.5px; background: var(--muted); padding: 1px 5px; border-
   .v3 .below .cols { gap: 28px; margin-top: 40px; }
   .v3 .below .lede, .v3 .below .cols p { font-size: 15px !important; }
 }
+@media (max-width: 640px) {
+  /* Phone header: brand and the install action first, then the repo stats as a status row with the badge pinned right. */
+  .v3 header { padding: 8px 16px 10px; gap: 6px 10px; }
+  .v3 header nav { gap: 10px; }
+  .v3 header .meta { order: 3; flex-basis: 100%; font-size: 12.5px; }
+  .v3 header .meta .badge { margin-left: auto; }
+}
 @media (max-width: 480px) {
+  .v3 header .meta .entry, .v3 .badge .w { display: none; }
   .v3 .plot { width: 640px; }
   .v3 .canvasrow { --plot-h: calc(640px * 470 / 880 + 40px); }
   .v3 .below h1 { font-size: 28px; }
@@ -310,7 +317,7 @@ function edgePath(a, b) {
 const v3 = () => `<div class="v3">
   <header>
     <span class="brand">signpost</span>
-    <span class="meta"><b>your-repo</b> · CLAUDE.md · 8 docs · 12 links <button class="badge" id="g-badge"></button></span>
+    <span class="meta"><span class="stat"><b>your-repo</b><span class="entry"> · CLAUDE.md</span> · 8 docs · 12 links</span><button class="badge" id="g-badge"></button></span>
     <nav><a href="#about">about</a><a href="${GH}">github</a><a class="btn" style="height:32px;font-size:12.5px" href="${GH}#install">install</a></nav>
   </header>
   <div class="canvasrow">
@@ -365,7 +372,7 @@ function wireV3() {
       : `<span>${esc(strip ? pre.slice(0, -1) : pre)}${b.to ? `<mark class="add">${b.to}</mark>` : ''}${esc(strip ? post.slice(1) : post)}</span>`;
     return `<div><span class="m">−</span><span>${esc(pre)}<mark class="del">${b.ref}</mark>${esc(post)}</span></div><div><span class="pl">+</span>${plus}</div>`;
   };
-  const renderBadge = () => { badge.textContent = `${BROKEN.length} broken ${BROKEN.length === 1 ? 'link' : 'links'}`; badge.hidden = !BROKEN.length; };
+  const renderBadge = () => { badge.innerHTML = `${BROKEN.length} broken<span class="w"> ${BROKEN.length === 1 ? 'link' : 'links'}</span>`; badge.hidden = !BROKEN.length; };
   const showBroken = () => {
     nodes.forEach(el => el.classList.remove('selected')); selectedId = null; light(null);
     if (!BROKEN.length) { panel.innerHTML = `<div class="empty"><b>no broken links</b>every reference points at a doc that exists.</div>`; return; }
