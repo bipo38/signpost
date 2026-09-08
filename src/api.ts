@@ -10,7 +10,9 @@ export interface Graph { root: string; entry: string; docs: string; nodes: Node[
 // browser (read-only); otherwise the local server. ?docs= picks the folder in both cases.
 const params = new URLSearchParams(location.search)
 export const repo = params.get('repo')
-export const readOnly = repo !== null
+// Anything not served from localhost is the hosted build, which has no local server behind it.
+export const hosted = !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
+export const readOnly = repo !== null || hosted
 export let docs: string | undefined = params.get('docs') ?? undefined
 export function setDocs(d: string) {
   docs = d
@@ -24,7 +26,8 @@ const q = (extra: Record<string, string> = {}) => {
 }
 
 async function ok<T>(r: Response): Promise<T> {
-  const body = await r.json()
+  let body: { error?: string } & T
+  try { body = JSON.parse(await r.text()) } catch { throw new Error(r.ok ? 'unexpected response from the server' : `${r.status} ${r.statusText}`) }
   if (!r.ok) throw new Error(body.error ?? r.statusText)
   return body
 }
@@ -78,4 +81,14 @@ function github(repo: string, ref = 'HEAD'): typeof local {
   }
 }
 
-export const api = repo && /^[\w.-]+\/[\w.-]+$/.test(repo) ? github(repo, params.get('ref') ?? undefined) : local
+const refuse = (why: string): typeof local => {
+  const deny = () => Promise.reject(new Error(why))
+  return { folders: deny, graph: deny, file: deny, unlink: deny, relink: deny, create: deny }
+}
+export const api = repo && /^[\w.-]+\/[\w.-]+$/.test(repo)
+  ? github(repo, params.get('ref') ?? undefined)
+  : repo
+    ? refuse(`"${repo}" is not a repository. Use owner/name.`)
+    : hosted
+      ? refuse('No repository given. Open the graph from the landing page, or add ?repo=owner/name to the URL.')
+      : local

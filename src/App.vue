@@ -4,7 +4,7 @@ import { VueFlow, useVueFlow, type Edge as FlowEdge, type Node as FlowNode } fro
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { marked } from 'marked'
-import { api, readOnly, repo, setDocs, type Graph } from './api'
+import { api, hosted, readOnly, repo, setDocs, type Graph } from './api'
 import { DENSE_EDGES, NODE_H, NODE_W, toFlow } from './layout'
 import DocNode from './components/DocNode.vue'
 import NewDocForm from './components/NewDocForm.vue'
@@ -229,7 +229,10 @@ const info = ref<InstanceType<typeof InfoDialog> | null>(null)
           <Background pattern-color="var(--dot)" :gap="22" :size="1.2" />
           <Controls :show-interactive="false" position="bottom-left" />
         </VueFlow>
-        <p v-if="loadError" class="absolute inset-x-0 top-4 mx-auto w-max rounded-md border border-destructive/40 bg-card px-3 py-2 text-[12.5px] text-destructive">{{ loadError }}</p>
+        <p v-if="loadError" class="absolute inset-x-0 top-4 mx-auto w-max max-w-[90%] rounded-md border border-destructive/40 bg-card px-3 py-2 text-[12.5px] text-destructive">
+          {{ loadError }}
+          <a v-if="hosted" href="../" class="ml-2 underline underline-offset-3 hover:text-foreground">landing page →</a>
+        </p>
       </div>
 
       <aside v-if="panelOpen" class="min-h-0 overflow-y-auto border-l bg-card/60 px-6 py-5">
