@@ -4,8 +4,6 @@ Visualize the context-pointer docs behind a `CLAUDE.md` / `AGENTS.md` file as a 
 
 ![Signpost in light mode showing a docs graph with plan.md selected](docs/screenshot.jpg)
 
-Landing page and live demo: https://bipo38.github.io/signpost/
-
 Agent instruction files tend to grow into a web of small markdown docs that point at each other: "for a bug, open `docs/plan.md`; when testing, open `docs/testing/ui.md`; after planning, return to the caller". Signpost draws that web, lets you read every doc in place, and adds new ones with the table rows and back-links already written.
 
 - Framework agnostic. It only reads markdown, so it works in any repo.
